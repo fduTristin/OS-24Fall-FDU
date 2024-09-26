@@ -29,6 +29,8 @@ void kalloc_test() {
     int y = 10000 - i * 500;
     if (i == 0)
         printk("\n\nkalloc_test\n");
+    // else 
+    //     return;
     SYNC(1)
     for (int j = 0; j < y; j++) {
         p[i][j] = kalloc_page();
@@ -67,6 +69,8 @@ void kalloc_test() {
                 z = round_up((u64)z, 8ll);
             }
             sz[i][j] = z;
+            // printk("i=%d,j=%d,size=%d\n",i,j,z);
+
             p[i][j] = kalloc(z);
             u64 q = (u64)p[i][j];
             if (p[i][j] == NULL || ((z & 1) == 0 && (q & 1) != 0) ||
@@ -83,6 +87,7 @@ void kalloc_test() {
             for (int t = 0; t < sz[i][k]; t++)
                 if (((u8 *)p[i][k])[t] != m)
                     FAIL("FAIL: block[%d][%d] wrong\n", i, k);
+            // printk("i=%d,j=%d\n",i,j);
             kfree(p[i][k]);
             p[i][k] = p[i][--j];
             sz[i][k] = sz[i][j];
@@ -97,8 +102,10 @@ void kalloc_test() {
         printk("Total: %lld\nUsage: %lld\n", z, kalloc_page_cnt.count - r);
     }
     SYNC(5)
-    for (int j = 0; j < 10000; j++)
+    for (int j = 0; j < 10000; j++){
         kfree(p[i][j]);
+    }
+
     SYNC(6)
     if (cpuid() == 0)
         printk("kalloc_test PASS\n");
