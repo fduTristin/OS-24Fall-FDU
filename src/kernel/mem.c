@@ -74,7 +74,7 @@ void kinit() {
     init_spinlock(&lock2);
 
     u64 addr = (u64)end;
-    u64 MEMBEGIN = ((addr >> 12) + 1) << 12;
+    u64 MEMBEGIN = (((addr + 4095) >> 12)) << 12;
     free_pages = (ListNode*)MEMBEGIN;
     ListNode* cur = free_pages;
     while(1)
