@@ -30,6 +30,7 @@ void new_slab(u64 index)
     *idx = index;
     new_slab = (slab*)((u64)new_slab + 8);
     slab* s = new_slab;
+    int free_count = 1;
     while(1)
     {
         u64 addr = (u64)s;
@@ -40,7 +41,9 @@ void new_slab(u64 index)
         }
         s->next = (slab*)(addr + size);
         s = s->next;
+        free_count += 1;
     }
+    *(idx + 1) = free_count;
     slabs[index] = new_slab;
 }
 
@@ -52,10 +55,16 @@ void* fetch_slab(u64 size)
     {
         new_slab(index);
         ret = slabs[index];
+        u64 page = (u64)ret & ~4095;
+        int* free_count = (int*)(page + 4);
+        *free_count -= 1;
         slabs[index] = slabs[index]->next;
     }
     else{
         ret = slabs[index];
+        u64 page_addr = (u64)ret & ~4095;
+        int* free_count = (int*)(page_addr+4);
+        *free_count -= 1;
         slabs[index] = slabs[index]->next;
     }
     return (void*)ret;
@@ -123,10 +132,42 @@ void* kalloc(u64 size) {
 
 void kfree(void* ptr) {
     acquire_spinlock(&lock2);
-    u64 page = (((u64)ptr) >> 12) << 12;
-    int* type = (int*)page;
-    int index = *type;
-    free_slab((slab*)ptr,index);
+    u64 page = ((u64)ptr) & ~4095;
+    int* idx = (int*)page;
+    int index = *idx;
+    *(idx + 1) += 1; //free_block + 1
+    u64 slabsize = (index + 1) << 3;
+    if(*(idx + 1) == (int)((PAGE_SIZE - 8) / slabsize))
+    {
+        slab* cur = slabs[index];
+        u64 addr_cur = (u64)cur;
+        while(addr_cur >= page && addr_cur < page + PAGE_SIZE && cur != NULL)
+        {
+            cur = cur->next;
+            addr_cur = (u64)cur;
+        }
+        slabs[index] = cur;
+
+        while(cur != NULL)
+        {
+            u64 addr_next = (u64)(cur->next);
+            if(addr_next >= page && addr_next < page + PAGE_SIZE && cur->next != NULL)
+            {
+                cur->next = cur->next->next;
+            }
+            else if(cur->next == NULL)
+            {
+                break;
+            }
+            else{
+                cur = cur->next;
+            }
+        }
+        kfree_page((void*)page);
+    }
+    else{
+        free_slab((slab*)ptr,index);
+    }
     release_spinlock(&lock2);  
     return;
 }
