@@ -47,6 +47,7 @@ void init_proc(Proc *p)
     p->kstack = kalloc_page();
     memset((void *)p->kstack, 0, PAGE_SIZE);
     init_schinfo(&p->schinfo);
+    init_pgdir(&p->pgdir);
     p->kcontext =
             (KernelContext *)((u64)p->kstack + PAGE_SIZE - 16 -
                               sizeof(KernelContext) - sizeof(UserContext));
@@ -102,7 +103,7 @@ int wait(int *exitcode)
     // 2. wait for childexit
     // 3. if any child exits, clean it up and return its pid and exitcode
     // NOTE: be careful of concurrency
-    int id = 0;    
+    int id = 0;
     auto this = thisproc();
 
     if (_empty_list(&this->children)) {
@@ -123,7 +124,7 @@ int wait(int *exitcode)
                 _detach_from_list(p);
                 kfree_page(child->kstack);
                 kfree(child);
-                free_pid(&pid_map,id);      // free pid here
+                free_pid(&pid_map, id); // free pid here
                 break;
             }
         }
@@ -168,9 +169,39 @@ NO_RETURN void exit(int code)
     PANIC(); // prevent the warning of 'no_return function returns'
 }
 
+Proc *dfs(Proc *p, int pid)
+{
+    if (p->pid == pid) {
+        return p;
+    } else if (!_empty_list(&p->children)) {
+        _for_in_list(child, &p->children)
+        {
+            if (child == &p->children) {
+                continue;
+            }
+            Proc *childproc = container_of(child, Proc, children);
+            Proc *ret = dfs(childproc, pid);
+            if (ret) {
+                return ret;
+            }
+        }
+    }
+    return NULL;
+}
+
 int kill(int pid)
 {
     // TODO:
     // Set the killed flag of the proc to true and return 0.
     // Return -1 if the pid is invalid (proc not found).
+    acquire_spinlock(&plock);
+    Proc *p = dfs(&root_proc, pid);
+    if (p && !is_unused(p)) {
+        p->killed = TRUE;
+        activate_proc(p);
+        release_spinlock(&plock);
+        return 0;
+    }
+    release_spinlock(&plock);
+    return -1;
 }

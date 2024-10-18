@@ -100,6 +100,7 @@ static void update_this_state(enum procstate new_state)
 {
     // TODO: if you use template sched function, you should implement this routinue
     // update the state of current process to new_state, and modify the sched queue if necessary
+
 }
 
 static Proc *pick_next()
@@ -129,6 +130,7 @@ static void update_this_proc(Proc *p)
     {
         _detach_from_list(&p->schinfo.rq);
     }
+    // reset_clock(1000);
 }
 
 // A simple scheduler.
