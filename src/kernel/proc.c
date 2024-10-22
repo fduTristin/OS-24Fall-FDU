@@ -41,6 +41,7 @@ void init_proc(Proc *p)
     memset(p, 0, sizeof(Proc));
     p->pid = alloc_pid(&pid_map);
     init_sem(&p->childexit, 0);
+    p->killed = FALSE;
     init_list_node(&p->children);
     ASSERT(_empty_list(&p->children));
     init_list_node(&p->ptnode);

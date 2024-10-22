@@ -5,6 +5,7 @@
 #include <aarch64/intrinsic.h>
 #include <kernel/cpu.h>
 #include <common/rbtree.h>
+#include<driver/clock.h>
 
 extern bool panic_flag;
 
@@ -24,6 +25,7 @@ void init_sched()
     for(int i = 0; i != NCPU; i++)
     {
         Proc* p = kalloc(sizeof(Proc));
+        p->killed = FALSE;
         p->idle = true;
         p->state = RUNNING;
         cpus[i].sched.thisproc = cpus[i].sched.idle = p;
@@ -100,7 +102,15 @@ static void update_this_state(enum procstate new_state)
 {
     // TODO: if you use template sched function, you should implement this routinue
     // update the state of current process to new_state, and modify the sched queue if necessary
-
+    if(new_state == RUNNABLE && !thisproc()->idle)
+    {
+        _insert_into_list(&rq, &thisproc()->schinfo.rq);
+    }
+    if((new_state == SLEEPING || new_state == ZOMBIE) && (thisproc()->state == RUNNABLE))
+    {
+        _detach_from_list(&thisproc()->schinfo.rq);
+    }
+    thisproc()->state = new_state;
 }
 
 static Proc *pick_next()
@@ -130,7 +140,7 @@ static void update_this_proc(Proc *p)
     {
         _detach_from_list(&p->schinfo.rq);
     }
-    // reset_clock(1000);
+    reset_clock(1000);
 }
 
 // A simple scheduler.
@@ -140,6 +150,11 @@ void sched(enum procstate new_state)
 {
     auto this = thisproc();
     ASSERT(this->state == RUNNING);
+    if(this->killed && new_state != ZOMBIE)
+    {
+        release_sched_lock();
+        return;
+    }
     update_this_state(new_state);
     auto next = pick_next();
     update_this_proc(next);
