@@ -180,7 +180,7 @@ Proc *dfs(Proc *p, int pid)
             if (child == &p->children) {
                 continue;
             }
-            Proc *childproc = container_of(child, Proc, children);
+            Proc *childproc = container_of(child, Proc, ptnode);
             Proc *ret = dfs(childproc, pid);
             if (ret) {
                 return ret;

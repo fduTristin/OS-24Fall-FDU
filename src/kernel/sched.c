@@ -5,14 +5,28 @@
 #include <aarch64/intrinsic.h>
 #include <kernel/cpu.h>
 #include <common/rbtree.h>
-#include<driver/clock.h>
+#include <driver/clock.h>
+
+#define TIMESLICE 2
 
 extern bool panic_flag;
 
 extern void swtch(KernelContext *new_ctx, KernelContext **old_ctx);
 
 static SpinLock rqlock;
-static ListNode rq;
+static struct rb_root_ rq;
+static struct timer sched_timer[NCPU];
+
+static bool __timer_cmp(rb_node lnode, rb_node rnode)
+{
+    i64 d = container_of(lnode, struct schinfo, rq)->runtime -
+            container_of(rnode, struct schinfo, rq)->runtime;
+    if (d < 0)
+        return true;
+    if (d == 0)
+        return lnode < rnode;
+    return false;
+}
 
 void init_sched()
 {
@@ -20,11 +34,9 @@ void init_sched()
     // 1. initialize the resources (e.g. locks, semaphores)
     // 2. initialize the scheduler info of each CPU
     init_spinlock(&rqlock);
-    init_list_node(&rq);
 
-    for(int i = 0; i != NCPU; i++)
-    {
-        Proc* p = kalloc(sizeof(Proc));
+    for (int i = 0; i != NCPU; i++) {
+        Proc *p = kalloc(sizeof(Proc));
         p->killed = FALSE;
         p->idle = true;
         p->state = RUNNING;
@@ -41,7 +53,7 @@ Proc *thisproc()
 void init_schinfo(struct schinfo *p)
 {
     // TODO: initialize your customized schinfo for every newly-created process
-    init_list_node(&p->rq);
+    p->runtime = 0;
 }
 
 void acquire_sched_lock()
@@ -81,17 +93,13 @@ bool activate_proc(Proc *p)
     // if the proc->state if SLEEPING/UNUSED, set the process state to RUNNABLE and add it to the sched queue
     // else: panic
     acquire_sched_lock();
-    if(p->state == RUNNING || p->state == RUNNABLE)
-    {
+    if (p->state == RUNNING || p->state == RUNNABLE) {
         release_sched_lock();
         return false;
-    }
-    else if(p->state == SLEEPING || p->state == UNUSED)
-    {
+    } else if (p->state == SLEEPING || p->state == UNUSED) {
         p->state = RUNNABLE;
-        _insert_into_list(&rq, &(p->schinfo.rq));
-    }
-    else{
+        _rb_insert(&p->schinfo.rq, &rq, __timer_cmp);
+    } else {
         PANIC();
     }
     release_sched_lock();
@@ -102,13 +110,12 @@ static void update_this_state(enum procstate new_state)
 {
     // TODO: if you use template sched function, you should implement this routinue
     // update the state of current process to new_state, and modify the sched queue if necessary
-    if(new_state == RUNNABLE && !thisproc()->idle)
-    {
-        _insert_into_list(&rq, &thisproc()->schinfo.rq);
+    if (new_state == RUNNABLE && !thisproc()->idle) {
+        _rb_insert(&thisproc()->schinfo.rq, &rq, __timer_cmp);
     }
-    if((new_state == SLEEPING || new_state == ZOMBIE) && (thisproc()->state == RUNNABLE))
-    {
-        _detach_from_list(&thisproc()->schinfo.rq);
+    if ((new_state == SLEEPING || new_state == ZOMBIE) &&
+        (thisproc()->state == RUNNABLE)) {
+        _rb_erase(&thisproc()->schinfo.rq, &rq);
     }
     thisproc()->state = new_state;
 }
@@ -117,17 +124,23 @@ static Proc *pick_next()
 {
     // TODO: if using template sched function, you should implement this routinue
     // choose the next process to run, and return idle if no runnable process
-    if(panic_flag)
+    if (panic_flag)
         return cpus[cpuid()].sched.idle;
-    _for_in_list(p, &rq)
-    {
-        if(p == &rq)
-            continue;
-        auto proc = container_of(p, Proc, schinfo.rq);
-        if(proc->state == RUNNABLE)
-            return proc;
+    rb_node next = _rb_first(&rq);
+    if (next) {
+        auto proc = container_of(next, Proc, schinfo.rq);
+        // printk("next pid:%d\n",proc->pid);
+        return proc;
     }
     return cpus[cpuid()].sched.idle;
+}
+
+static void _sched_handler(struct timer *t)
+{
+    t->data--;
+    thisproc()->schinfo.runtime += TIMESLICE;
+    acquire_sched_lock();
+    sched(RUNNABLE);
 }
 
 static void update_this_proc(Proc *p)
@@ -135,12 +148,25 @@ static void update_this_proc(Proc *p)
     // TODO: you should implement this routinue
     // update thisproc to the choosen process
     // reset_clock(1000);
-    cpus[cpuid()].sched.thisproc = p;
-    if(!p->idle)
-    {
-        _detach_from_list(&p->schinfo.rq);
+    if (sched_timer[cpuid()].data > 0) {
+        cancel_cpu_timer(&sched_timer[cpuid()]);
+        sched_timer[cpuid()].data--;
     }
-    reset_clock(1000);
+
+    cpus[cpuid()].sched.thisproc = p;
+
+    sched_timer[cpuid()].elapse = TIMESLICE;
+    sched_timer[cpuid()].handler = _sched_handler;
+
+    set_cpu_timer(&sched_timer[cpuid()]);
+    sched_timer[cpuid()].data++;
+
+    ASSERT(p->state == RUNNABLE);
+
+    if (!p->idle) {
+        _rb_erase(&p->schinfo.rq, &rq);
+        // printk("erase pid:%d\n", p->pid);
+    }
 }
 
 // A simple scheduler.
@@ -150,8 +176,7 @@ void sched(enum procstate new_state)
 {
     auto this = thisproc();
     ASSERT(this->state == RUNNING);
-    if(this->killed && new_state != ZOMBIE)
-    {
+    if (this->killed && new_state != ZOMBIE) {
         release_sched_lock();
         return;
     }
