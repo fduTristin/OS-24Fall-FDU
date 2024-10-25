@@ -129,7 +129,6 @@ static Proc *pick_next()
     rb_node next = _rb_first(&rq);
     if (next) {
         auto proc = container_of(next, Proc, schinfo.rq);
-        // printk("next pid:%d\n",proc->pid);
         return proc;
     }
     return cpus[cpuid()].sched.idle;
@@ -165,7 +164,6 @@ static void update_this_proc(Proc *p)
 
     if (!p->idle) {
         _rb_erase(&p->schinfo.rq, &rq);
-        // printk("erase pid:%d\n", p->pid);
     }
 }
 

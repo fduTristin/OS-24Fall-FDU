@@ -17,18 +17,15 @@ PTEntriesPtr get_pte(struct pgdir *pgdir, u64 va, bool alloc)
             return NULL;
         }
         pt0 = kalloc_page();
-        // printk("finish pt[0]alloc! pt0:%p\n", pt0);
         memset(pt0, 0, PAGE_SIZE);
         pgdir->pt = pt0;
     }
     PTEntriesPtr pt1 = (PTEntriesPtr)P2K(PTE_ADDRESS(pt0[VA_PART0(va)]));
-    // printk("pt1:%p\n", pt1);
     if (!(pt0[VA_PART0(va)] & PTE_VALID)) {
         if (!alloc) {
             return NULL;
         }
         pt1 = kalloc_page();
-        // printk("finish pt[1]alloc! pt1:%p\n", pt1);
         memset((void*)pt1, 0, PAGE_SIZE);
         pt0[VA_PART0(va)] = K2P(pt1) | PTE_TABLE;
     }
@@ -38,7 +35,6 @@ PTEntriesPtr get_pte(struct pgdir *pgdir, u64 va, bool alloc)
             return NULL;
         }
         pt2 = kalloc_page();
-        // printk("finish pt[2]alloc! pt2:%p\n", pt2);
         memset((void*)pt2, 0, PAGE_SIZE);
         pt1[VA_PART1(va)] = K2P(pt2) | PTE_TABLE;
     }
@@ -48,7 +44,6 @@ PTEntriesPtr get_pte(struct pgdir *pgdir, u64 va, bool alloc)
             return NULL;
         }
         pt3 = kalloc_page();
-        // printk("finish pt[3]alloc! pt3:%p\n", pt3);
         memset((void*)pt3, 0, PAGE_SIZE);
         pt2[VA_PART2(va)] = K2P(pt3) | PTE_TABLE;
     }
@@ -70,17 +65,13 @@ void free_pgdir(struct pgdir *pgdir)
     }
     PTEntriesPtr pt[4];
     pt[0] = pgdir->pt;
-    // printk("pt[0]: %p\n",pt[0]);
     for (int i = 0; i != N_PTE_PER_TABLE; i++) {
         pt[1] = (PTEntriesPtr)P2K(PTE_ADDRESS(pt[0][i]));
-        // printk("pt[1]: %p\n",pt[1]);
         if (!(pt[0][i] & PTE_VALID)) {
-            // printk("pt[1]: continue\n");
             continue;
         }
         for (int j = 0; j != N_PTE_PER_TABLE; j++) {
             pt[2] = (PTEntriesPtr)P2K(PTE_ADDRESS(pt[1][j]));
-            // printk("pt[2]: %p\n",pt[2]);
             if (!(pt[1][j] & PTE_VALID)) {
                 continue;
             }
