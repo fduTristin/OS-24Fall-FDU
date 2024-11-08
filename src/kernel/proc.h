@@ -10,15 +10,24 @@ enum procstate { UNUSED, RUNNABLE, RUNNING, SLEEPING, ZOMBIE };
 
 typedef struct UserContext {
     // TODO: customize your trap frame
+    u64 spsr;
+    u64 elr;
+    u64 sp;
+    // General Purpose registers
+    u64 gregs[31];
 } UserContext;
 
 typedef struct KernelContext {
     // TODO: customize your context
+    u64 lr, x0, x1;
+    u64 x[11]; // x19-x29
 } KernelContext;
 
 // embeded data for procs
 struct schinfo {
     // TODO: customize your sched info
+    struct rb_node_ rq;
+    u64 runtime;
 };
 
 typedef struct Proc {

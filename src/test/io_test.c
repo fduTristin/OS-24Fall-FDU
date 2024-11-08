@@ -24,7 +24,7 @@ void io_test()
         buffer[0].flags = 0;
         buffer[0].block_no = (u32)i;
         virtio_blk_rw(&buffer[0]);
-        
+
         // Write a pattern to block `i`.
         buffer[i].flags = B_DIRTY;
         buffer[i].block_no = (u32)i;
@@ -40,7 +40,7 @@ void io_test()
 
         for (int j = 0; j < BSIZE; j++) {
             if (buffer[i].data[j] != ((i * j) & 0xFF)) {
-                PANIC();  // Trigger panic on data mismatch
+                PANIC(); // Trigger panic on data mismatch
             }
         }
 
@@ -67,7 +67,8 @@ void io_test()
 
     printk("\e[0;32m[Test] Read %dB (%dMB), time: %lld cycles, speed: %lld.%lld MB/s\e[0m\n",
            num_blocks * BSIZE, megabytes, timestamp,
-           megabytes * frequency / timestamp, (megabytes * frequency * 10 / timestamp) % 10);
+           megabytes * frequency / timestamp,
+           (megabytes * frequency * 10 / timestamp) % 10);
 
     printk("\e[0;32m[Test] Measuring write speed... \e[0m\n");
     arch_dsb_sy();
@@ -86,7 +87,8 @@ void io_test()
 
     printk("\e[0;32m[Test] Write %dB (%dMB), time: %lld cycles, speed: %lld.%lld MB/s\e[0m\n",
            num_blocks * BSIZE, megabytes, timestamp,
-           megabytes * frequency / timestamp, (megabytes * frequency * 10 / timestamp) % 10);
+           megabytes * frequency / timestamp,
+           (megabytes * frequency * 10 / timestamp) % 10);
 
     printk("\e[0;32m[Test] io_test PASS\e[0m\n");
 }
