@@ -199,7 +199,7 @@ int kill(int pid)
     Proc *p = dfs(&root_proc, pid);
     if (p && !is_unused(p)) {
         p->killed = TRUE;
-        activate_proc(p);
+        alert_proc(p);
         release_spinlock(&plock);
         return 0;
     }

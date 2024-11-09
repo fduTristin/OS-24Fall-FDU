@@ -99,6 +99,14 @@ bool _activate_proc(Proc *p, bool onalert)
     } else if (p->state == SLEEPING || p->state == UNUSED) {
         p->state = RUNNABLE;
         _rb_insert(&p->schinfo.rq, &rq, __timer_cmp);
+    } else if (p->state == DEEPSLEEPING) {
+        if (onalert) {
+            release_sched_lock();
+            return false;
+        } else {
+            p->state = RUNNABLE;
+            _rb_insert(&p->schinfo.rq, &rq, __timer_cmp);
+        }
     } else {
         PANIC();
     }
@@ -113,7 +121,7 @@ static void update_this_state(enum procstate new_state)
     if (new_state == RUNNABLE && !thisproc()->idle) {
         _rb_insert(&thisproc()->schinfo.rq, &rq, __timer_cmp);
     }
-    if ((new_state == SLEEPING || new_state == ZOMBIE) &&
+    if ((new_state == SLEEPING || new_state == DEEPSLEEPING ||new_state == ZOMBIE) &&
         (thisproc()->state == RUNNABLE)) {
         _rb_erase(&thisproc()->schinfo.rq, &rq);
     }
