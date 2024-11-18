@@ -115,13 +115,11 @@ int virtio_blk_rw(Buf *b)
     arch_fence();
 
     /* LAB 4 TODO 1 BEGIN */
-    disk.virtq.used->ring[disk.virtq.used->idx % NQUEUE].id = d0;
-    disk.virtq.used->idx++;
 
-    b->done = false;
-    while (!b->done) {
+    while (!disk.virtq.info[d0].done) {
+        _lock_sem(&b->sem);
         release_spinlock(&disk.lk);
-        wait_sem(&b->sem);
+        _wait_sem(&b->sem);
         acquire_spinlock(&disk.lk);
     }
     /* LAB 4 TODO 1 END */
@@ -148,7 +146,7 @@ static void virtio_blk_intr()
 
         /* LAB 4 TODO 2 BEGIN */
         Buf *b = container_of((void *)disk.virtq.info[d0].buf, Buf, data);
-        b->done = true;
+        disk.virtq.info[d0].done = true;
         post_sem(&b->sem);
         /* LAB 4 TODO 2 END */
 
