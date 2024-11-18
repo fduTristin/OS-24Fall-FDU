@@ -93,25 +93,26 @@ bool _activate_proc(Proc *p, bool onalert)
     // if the proc->state is SLEEPING/UNUSED, set the process state to RUNNABLE, add it to the sched queue, and return true
     // if the proc->state is DEEPSLEEPING, do nothing if onalert or activate it if else, and return the corresponding value.
     acquire_sched_lock();
+    bool ret = false;
     if (p->state == RUNNING || p->state == RUNNABLE) {
         release_sched_lock();
-        return false;
+        return ret;
     } else if (p->state == SLEEPING || p->state == UNUSED) {
         p->state = RUNNABLE;
-        _rb_insert(&p->schinfo.rq, &rq, __timer_cmp);
+        ret = _rb_insert(&p->schinfo.rq, &rq, __timer_cmp) == 0;
     } else if (p->state == DEEPSLEEPING) {
         if (onalert) {
             release_sched_lock();
-            return false;
+            return ret;
         } else {
             p->state = RUNNABLE;
-            _rb_insert(&p->schinfo.rq, &rq, __timer_cmp);
+            ret = _rb_insert(&p->schinfo.rq, &rq, __timer_cmp);
         }
     } else {
         PANIC();
     }
     release_sched_lock();
-    return true;
+    return ret;
 }
 
 static void update_this_state(enum procstate new_state)
@@ -119,7 +120,8 @@ static void update_this_state(enum procstate new_state)
     // TODO: if you use template sched function, you should implement this routinue
     // update the state of current process to new_state, and modify the sched queue if necessary
     if (new_state == RUNNABLE && !thisproc()->idle) {
-        _rb_insert(&thisproc()->schinfo.rq, &rq, __timer_cmp);
+        bool check_insert = _rb_insert(&thisproc()->schinfo.rq, &rq, __timer_cmp) == 0;
+        ASSERT(check_insert);
     }
     if ((new_state == SLEEPING || new_state == DEEPSLEEPING ||new_state == ZOMBIE) &&
         (thisproc()->state == RUNNABLE)) {
