@@ -30,7 +30,7 @@ NO_RETURN void kernel_entry()
     proc_test();
     // vm_test();
     user_proc_test();
-    // io_test();
+    io_test();
 
     /* LAB 4 TODO 3 BEGIN */
 
