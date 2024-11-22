@@ -42,7 +42,7 @@ static SpinLock lock;
  */
 static ListNode head;
 
-usize cachesize;
+static usize cachesize = 0;
 
 static LogHeader header; // in-memory copy of log header block.
 
@@ -61,7 +61,17 @@ static LogHeader header; // in-memory copy of log header block.
  */
 struct {
     /* your fields here */
+    SpinLock lock;
+    Semaphore done;
+    u64 num_ops;
+    // to be continued
 } log;
+
+Block *find_cache(usize);
+void recently_used(Block *);
+bool evict();
+void wblog();
+void create_checkpoint();
 
 // read the content from disk.
 static INLINE void device_read(Block *block)
@@ -92,11 +102,11 @@ static void init_block(Block *block)
 {
     block->block_no = 0;
     init_list_node(&block->node);
-    block->acquired = false;
-    block->pinned = false;
+    block->acquired = FALSE;
+    block->pinned = FALSE;
 
     init_sleeplock(&block->lock);
-    block->valid = false;
+    block->valid = FALSE;
     memset(block->data, 0, sizeof(block->data));
 }
 
@@ -120,19 +130,19 @@ static Block *cache_acquire(usize block_no)
             acquire_spinlock(&lock);
             if (get_sem(&b->lock)) {
                 b->acquired = TRUE;
-                recently_used(b);
-                release_spinlock(&lock);
-                return b;
+                break;
             }
         }
-        get_sem(&b->lock);
-        b->acquired = TRUE;
+        if (!b->acquired) {
+            get_sem(&b->lock);
+            b->acquired = TRUE;
+        }
         recently_used(b);
         release_spinlock(&lock);
         return b;
     }
 
-    if (get_num_cached_blocks() == EVICTION_THRESHOLD) {
+    if (get_num_cached_blocks() >= EVICTION_THRESHOLD) {
         evict();
     }
 
@@ -143,6 +153,7 @@ static Block *cache_acquire(usize block_no)
     b->block_no = block_no;
 
     _insert_into_list(head.prev, &b->node);
+    cachesize++;
 
     device_read(b);
     b->valid = TRUE;
@@ -168,36 +179,133 @@ void init_bcache(const SuperBlock *_sblock, const BlockDevice *_device)
     device = _device;
 
     // TODO
+    init_spinlock(&lock);
+    init_list_node(&head);
+
+    init_spinlock(&log.lock);
+    init_sem(&log.done, 0);
+
+    // restore the log
+    create_checkpoint();
 }
 
 // see `cache.h`.
 static void cache_begin_op(OpContext *ctx)
 {
     // TODO
+    acquire_spinlock(&log.lock);
+    log.num_ops++;
+    ctx->rm = OP_MAX_NUM_BLOCKS;
+    release_spinlock(&log.lock);
 }
 
 // see `cache.h`.
 static void cache_sync(OpContext *ctx, Block *block)
 {
     // TODO
+
+    // if ctx is NULL, directly write to device
+
+    if (!ctx) {
+        device_write(block);
+        return;
+    }
+
+    // if block in log, return
+    acquire_spinlock(&log.lock);
+    for (usize i = 0; i < header.num_blocks; i++) {
+        if (header.block_no[i] == block->block_no) {
+            release_spinlock(&log.lock);
+            return;
+        }
+    }
+
+    if (ctx->rm == 0)
+        PANIC();
+
+    // If the block is not in the log, we open a new log block for this block.
+    header.num_blocks++;
+    ASSERT(header.num_blocks <= LOG_MAX_SIZE);
+    header.block_no[header.num_blocks - 1] = block->block_no;
+    block->pinned = TRUE;
+    ctx->rm--;
+    release_spinlock(&log.lock);
 }
 
 // see `cache.h`.
 static void cache_end_op(OpContext *ctx)
 {
     // TODO
+    acquire_spinlock(&log.lock);
+    log.num_ops--;
+    ctx->rm = 0;
+
+    // If there are other commits to the log, we wait for them
+
+    if (log.num_ops > 0) {
+        _lock_sem(&(log.done));
+        release_spinlock(&log.lock);
+        if (!_wait_sem(&(log.done), FALSE)) {
+            PANIC();
+        };
+        return;
+    }
+
+    // After all the commiters call end_op, we write the cache back to the log,
+    // sync the header in memory with the header in disk and finally write the checkpoint
+    // to the disk.
+    if (log.num_ops == 0) {
+        wblog();
+        write_header();
+        create_checkpoint();
+        post_all_sem(&log.done);
+    }
+    release_spinlock(&log.lock);
 }
 
 // see `cache.h`.
 static usize cache_alloc(OpContext *ctx)
 {
     // TODO
+    if (ctx->rm <= 0)
+        PANIC();
+
+    usize num_bitmap_blocks =
+            (sblock->num_data_blocks + BIT_PER_BLOCK - 1) / BIT_PER_BLOCK;
+
+    for (usize i = 0; i < num_bitmap_blocks; i++) {
+        Block *bitmap_block = cache_acquire(sblock->bitmap_start + i);
+        for (usize j = 0; j < BLOCK_SIZE * 8; j++) {
+            usize block_no = i * BLOCK_SIZE * 8 + j;
+            if (block_no >= sblock->num_blocks) {
+                cache_release(bitmap_block);
+                PANIC();
+            }
+            if (!bitmap_get((BitmapCell *)bitmap_block->data, j)) {
+                Block *b = cache_acquire(block_no);
+                memset(b->data, 0, BLOCK_SIZE);
+                cache_sync(ctx, b);
+                bitmap_set((BitmapCell *)bitmap_block->data, j);
+                cache_sync(ctx, bitmap_block);
+                cache_release(b);
+                cache_release(bitmap_block);
+                return block_no;
+            }
+        }
+        cache_release(bitmap_block);
+    }
+    return -1;
 }
 
 // see `cache.h`.
 static void cache_free(OpContext *ctx, usize block_no)
 {
     // TODO
+    Block *bitmap_block =
+            cache_acquire(block_no / (BLOCK_SIZE * 8) + sblock->bitmap_start);
+    bitmap_clear((BitmapCell *)bitmap_block->data, block_no % (BLOCK_SIZE * 8));
+    cache_sync(ctx, bitmap_block);
+    cache_release(bitmap_block);
 }
 
 BlockCache bcache = {
@@ -213,10 +321,6 @@ BlockCache bcache = {
 
 void recently_used(Block *b)
 {
-    if (&b->node == &head) {
-        head = *head.next;
-        return;
-    }
     _detach_from_list(&b->node);
     _insert_into_list(head.prev, &b->node);
 }
@@ -225,6 +329,9 @@ Block *find_cache(usize block_no)
 {
     _for_in_list(p, &head)
     {
+        if (p == &head) {
+            continue;
+        }
         Block *b = container_of(p, Block, node);
         if (b->block_no == block_no) {
             return b;
@@ -239,14 +346,49 @@ bool evict()
     _for_in_list(p, &head)
     {
         Block *b = container_of(p, Block, node);
-        if (!b->pinned) {
-            if (p == &head) {
-                head = *head.next;
-            }
+        if (p == &head) {
+            continue;
+        }
+        if (!b->pinned & !b->acquired) {
+            ListNode *temp = p->prev;
             _detach_from_list(p);
-            ret = TRUE;
-            return ret;
+            kfree(b);
+            cachesize--;
+            // try best to make cachesize below threshold
+            ret = cachesize < EVICTION_THRESHOLD;
+            if (ret) {
+                return ret;
+            }
+            p = temp;
         }
     }
     return ret;
+}
+
+void wblog()
+{
+    // Walk through every block_no in the header and write the changes back to the log.
+    for (usize i = 0; i < header.num_blocks; i++) {
+        Block *b = cache_acquire(header.block_no[i]);
+        device->write(sblock->log_start + i + 1, b->data);
+        b->pinned = FALSE;
+        cache_release(b);
+    }
+}
+
+void create_checkpoint()
+{
+    read_header();
+    Block temp;
+    init_block(&temp);
+
+    for (usize i = 0; i < header.num_blocks; i++) {
+        temp.block_no = sblock->log_start + 1 + i;
+        device_read(&temp);
+        temp.block_no = header.block_no[i];
+        device_write(&temp);
+    }
+
+    header.num_blocks = 0;
+    write_header();
 }

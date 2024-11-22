@@ -489,6 +489,7 @@ namespace concurrent
 
 void test_acquire()
 {
+    printf("begin concurrent acquire!\n");
     constexpr usize num_rounds = 100;
     constexpr usize num_workers = 64;
 
