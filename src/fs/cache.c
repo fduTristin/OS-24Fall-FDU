@@ -62,8 +62,10 @@ static LogHeader header; // in-memory copy of log header block.
 struct {
     /* your fields here */
     SpinLock lock;
-    Semaphore done;
+    Semaphore begin;
+    Semaphore end;
     u64 num_ops;
+    u64 blocks_occupied;
     // to be continued
 } log;
 
@@ -183,7 +185,9 @@ void init_bcache(const SuperBlock *_sblock, const BlockDevice *_device)
     init_list_node(&head);
 
     init_spinlock(&log.lock);
-    init_sem(&log.done, 0);
+    init_sem(&log.end, 0);
+    init_sem(&log.begin, 0);
+    log.blocks_occupied = 0;
 
     // restore the log
     create_checkpoint();
@@ -194,6 +198,17 @@ static void cache_begin_op(OpContext *ctx)
 {
     // TODO
     acquire_spinlock(&log.lock);
+    usize LOG_MAX = MIN(LOG_MAX_SIZE, sblock->num_blocks - 1);
+    while (log.blocks_occupied + OP_MAX_NUM_BLOCKS > LOG_MAX) {
+        _lock_sem(&(log.begin));
+        release_spinlock(&log.lock);
+        if (!_wait_sem(&(log.begin), FALSE)) {
+            PANIC();
+        };
+        acquire_spinlock(&log.lock);
+    }
+    log.blocks_occupied +=
+            OP_MAX_NUM_BLOCKS; // Suppose this op uses maximum number of blocks in log
     log.num_ops++;
     ctx->rm = OP_MAX_NUM_BLOCKS;
     release_spinlock(&log.lock);
@@ -225,7 +240,6 @@ static void cache_sync(OpContext *ctx, Block *block)
 
     // If the block is not in the log, we open a new log block for this block.
     header.num_blocks++;
-    ASSERT(header.num_blocks <= LOG_MAX_SIZE);
     header.block_no[header.num_blocks - 1] = block->block_no;
     block->pinned = TRUE;
     ctx->rm--;
@@ -238,14 +252,15 @@ static void cache_end_op(OpContext *ctx)
     // TODO
     acquire_spinlock(&log.lock);
     log.num_ops--;
+    log.blocks_occupied -= OP_MAX_NUM_BLOCKS;
     ctx->rm = 0;
-
     // If there are other commits to the log, we wait for them
 
     if (log.num_ops > 0) {
-        _lock_sem(&(log.done));
+        _lock_sem(&(log.end));
+        post_sem(&log.begin);
         release_spinlock(&log.lock);
-        if (!_wait_sem(&(log.done), FALSE)) {
+        if (!_wait_sem(&(log.end), FALSE)) {
             PANIC();
         };
         return;
@@ -258,7 +273,8 @@ static void cache_end_op(OpContext *ctx)
         wblog();
         write_header();
         create_checkpoint();
-        post_all_sem(&log.done);
+        post_all_sem(&log.end);
+        post_sem(&log.begin);
     }
     release_spinlock(&log.lock);
 }
