@@ -14,4 +14,5 @@ typedef struct {
 
     /* @todo: It depends on you to add other necessary elements. */
     Semaphore sem;
+    bool done;
 } Buf;
