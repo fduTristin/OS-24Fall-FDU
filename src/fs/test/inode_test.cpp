@@ -271,19 +271,7 @@ void test_large_file()
     inodes.read(p, buf, 0, max_size);
     inodes.unlock(p);
 
-    // printf("copy:\n");
-    // for (usize i = 0; i < max_size; i++) {
-    //     printf("%d ", copy[i]);
-    // }
-    // printf("\nbuf:\n");
-    // for (usize i = 0; i < max_size; i++) {
-    //     printf("%d ", buf[i]);
-    // }
     for (usize i = 0; i < max_size; i++) {
-        // if (buf[i] != copy[i]) {
-        //     printf("buf[%llu]: %d\n", i, buf[i]);
-        //     printf("copy[%llu]: %d\n", i, copy[i]);
-        // }
         assert_eq(buf[i], copy[i]);
     }
 
