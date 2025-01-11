@@ -37,7 +37,7 @@ struct iovec {
 static struct file *fd2file(int fd)
 {
     /* (Final) TODO BEGIN */
-    
+    return NULL;
     /* (Final) TODO END */
 }
 
@@ -66,14 +66,14 @@ define_syscall(mmap, void *addr, int length, int prot, int flags, int fd,
                int offset)
 {
     /* (Final) TODO BEGIN */
-    
+    return 0;
     /* (Final) TODO END */
 }
 
 define_syscall(munmap, void *addr, size_t length)
 {
     /* (Final) TODO BEGIN */
-    
+    return 0;
     /* (Final) TODO END */
 }
 
@@ -374,7 +374,7 @@ define_syscall(chdir, const char *path)
      * Change the cwd (current working dictionary) of current process to 'path'.
      * You may need to do some validations.
      */
-    
+    return 0;
     /* (Final) TODO END */
 }
 
@@ -382,6 +382,6 @@ define_syscall(pipe2, int pipefd[2], int flags)
 {
 
     /* (Final) TODO BEGIN */
-    
+    return 0;
     /* (Final) TODO END */
 }

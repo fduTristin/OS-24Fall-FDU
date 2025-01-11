@@ -28,7 +28,7 @@ void init_write_pipe(File *writep, Pipe *pipe)
 int pipe_alloc(File **f0, File **f1)
 {
     /* (Final) TODO BEGIN */
-
+    return 0;
     /* (Final) TODO END */
 }
 
@@ -42,13 +42,13 @@ void pipe_close(Pipe *pi, int writable)
 int pipe_write(Pipe *pi, u64 addr, int n)
 {
     /* (Final) TODO BEGIN */
-
+    return 0;
     /* (Final) TODO END */
 }
 
 int pipe_read(Pipe *pi, u64 addr, int n)
 {
     /* (Final) TODO BEGIN */
-
+    return 0;
     /* (Final) TODO END */
 }

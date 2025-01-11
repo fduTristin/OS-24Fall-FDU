@@ -208,27 +208,6 @@ int kill(int pid)
     return -1;
 }
 
-/*
- * Create a new process copying p as the parent.
- * Sets up stack to return as if from system call.
- */
-void trap_return();
-int fork()
-{
-    /**
-     * (Final) TODO BEGIN
-     * 
-     * 1. Create a new child process.
-     * 2. Copy the parent's memory space.
-     * 3. Copy the parent's trapframe.
-     * 4. Set the parent of the new proc to the parent of the parent.
-     * 5. Set the state of the new proc to RUNNABLE.
-     * 6. Activate the new proc and return its pid.
-     */
-
-    /* (Final) TODO END */
-}
-
 
 /*
  * Create a new process copying p as the parent.
@@ -247,6 +226,6 @@ int fork()
      * 5. Set the state of the new proc to RUNNABLE.
      * 6. Activate the new proc and return its pid.
      */
-
+    return 0;
     /* (Final) TODO END */
 }

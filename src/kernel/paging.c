@@ -36,15 +36,14 @@ u64 sbrk(i64 size) {
      * Return the previous heap_end.
      */
 
-    
+    return 0;
     /* (Final) TODO END */
 }
 
 int pgfault_handler(u64 iss) {
-    Proc *p = thisproc();
-    struct pgdir *pd = &p->pgdir;
-    u64 addr =
-            arch_get_far(); // Attempting to access this address caused the page fault
+    // Proc *p = thisproc();
+    // struct pgdir *pd = &p->pgdir;
+    // u64 addr = arch_get_far(); // Attempting to access this address caused the page fault
 
     /** 
      * (Final) TODO BEGIN
@@ -54,7 +53,7 @@ int pgfault_handler(u64 iss) {
      * 3. Handle the page fault accordingly.
      * 4. Return to user code or kill the process.
      */
-
+    return 0;
     /* (Final) TODO END */
 }
 

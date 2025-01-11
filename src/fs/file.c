@@ -7,7 +7,7 @@
 #include <kernel/mem.h>
 
 // the global file table.
-static struct ftable ftable;
+// static struct ftable ftable;
 
 void init_ftable() {
     // TODO: initialize your ftable.

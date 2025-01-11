@@ -476,28 +476,28 @@ InodeTree inodes = {
     skipelem("a", name) = "", setting name = "a",
     skipelem("", name) = skipelem("////", name) = NULL, not setting name.
  */
-static const char* skipelem(const char* path, char* name) {
-    const char* s;
-    int len;
+// static const char* skipelem(const char* path, char* name) {
+//     const char* s;
+//     int len;
 
-    while (*path == '/')
-        path++;
-    if (*path == 0)
-        return 0;
-    s = path;
-    while (*path != '/' && *path != 0)
-        path++;
-    len = path - s;
-    if (len >= FILE_NAME_MAX_LENGTH)
-        memmove(name, s, FILE_NAME_MAX_LENGTH);
-    else {
-        memmove(name, s, len);
-        name[len] = 0;
-    }
-    while (*path == '/')
-        path++;
-    return path;
-}
+//     while (*path == '/')
+//         path++;
+//     if (*path == 0)
+//         return 0;
+//     s = path;
+//     while (*path != '/' && *path != 0)
+//         path++;
+//     len = path - s;
+//     if (len >= FILE_NAME_MAX_LENGTH)
+//         memmove(name, s, FILE_NAME_MAX_LENGTH);
+//     else {
+//         memmove(name, s, len);
+//         name[len] = 0;
+//     }
+//     while (*path == '/')
+//         path++;
+//     return path;
+// }
 
 /**
     @brief look up and return the inode for `path`.
