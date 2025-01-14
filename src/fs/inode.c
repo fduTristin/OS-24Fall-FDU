@@ -476,28 +476,29 @@ InodeTree inodes = {
     skipelem("a", name) = "", setting name = "a",
     skipelem("", name) = skipelem("////", name) = NULL, not setting name.
  */
-// static const char* skipelem(const char* path, char* name) {
-//     const char* s;
-//     int len;
+static const char *skipelem(const char *path, char *name)
+{
+    const char *s;
+    int len;
 
-//     while (*path == '/')
-//         path++;
-//     if (*path == 0)
-//         return 0;
-//     s = path;
-//     while (*path != '/' && *path != 0)
-//         path++;
-//     len = path - s;
-//     if (len >= FILE_NAME_MAX_LENGTH)
-//         memmove(name, s, FILE_NAME_MAX_LENGTH);
-//     else {
-//         memmove(name, s, len);
-//         name[len] = 0;
-//     }
-//     while (*path == '/')
-//         path++;
-//     return path;
-// }
+    while (*path == '/')
+        path++;
+    if (*path == 0)
+        return 0;
+    s = path;
+    while (*path != '/' && *path != 0)
+        path++;
+    len = path - s;
+    if (len >= FILE_NAME_MAX_LENGTH)
+        memmove(name, s, FILE_NAME_MAX_LENGTH);
+    else {
+        memmove(name, s, len);
+        name[len] = 0;
+    }
+    while (*path == '/')
+        path++;
+    return path;
+}
 
 /**
     @brief look up and return the inode for `path`.
@@ -518,22 +519,25 @@ InodeTree inodes = {
     namex("/a/b", true, name) = inode of a, setting name = "b",
     namex("/", true, name) = NULL (because "/" has no parent!)
  */
-static Inode* namex(const char* path,
-                    bool nameiparent,
-                    char* name,
-                    OpContext* ctx) {
+static Inode *namex(const char *path, bool nameiparent, char *name,
+                    OpContext *ctx)
+{
     /* (Final) TODO BEGIN */
-    
+    if(strncmp(path, "/", 2) == 0){
+        return inodes.get(ROOT_INODE_NO);
+    }
     /* (Final) TODO END */
     return 0;
 }
 
-Inode* namei(const char* path, OpContext* ctx) {
+Inode *namei(const char *path, OpContext *ctx)
+{
     char name[FILE_NAME_MAX_LENGTH];
     return namex(path, false, name, ctx);
 }
 
-Inode* nameiparent(const char* path, char* name, OpContext* ctx) {
+Inode *nameiparent(const char *path, char *name, OpContext *ctx)
+{
     return namex(path, true, name, ctx);
 }
 
@@ -542,22 +546,23 @@ Inode* nameiparent(const char* path, char* name, OpContext* ctx) {
     
     @note the caller must hold the lock of `ip`.
  */
-void stati(Inode* ip, struct stat* st) {
+void stati(Inode *ip, struct stat *st)
+{
     st->st_dev = 1;
     st->st_ino = ip->inode_no;
     st->st_nlink = ip->entry.num_links;
     st->st_size = ip->entry.num_bytes;
     switch (ip->entry.type) {
-        case INODE_REGULAR:
-            st->st_mode = S_IFREG;
-            break;
-        case INODE_DIRECTORY:
-            st->st_mode = S_IFDIR;
-            break;
-        case INODE_DEVICE:
-            st->st_mode = 0;
-            break;
-        default:
-            PANIC();
+    case INODE_REGULAR:
+        st->st_mode = S_IFREG;
+        break;
+    case INODE_DIRECTORY:
+        st->st_mode = S_IFDIR;
+        break;
+    case INODE_DEVICE:
+        st->st_mode = 0;
+        break;
+    default:
+        PANIC();
     }
 }
