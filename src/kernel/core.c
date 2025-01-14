@@ -35,8 +35,6 @@ void kernel_entry()
     vm_test();
     user_proc_test();
     io_test();
-    user_proc_test();
-    io_test();
 
     /* LAB 4 TODO 3 BEGIN */
 

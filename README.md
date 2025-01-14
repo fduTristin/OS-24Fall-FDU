@@ -2,8 +2,6 @@
 
 ## 1. File Descriptor
 
-
-
 ### 1.1 任务
 
 > - [x] 任务1：实现`src/fs/file.c`的下列函数：
@@ -62,7 +60,9 @@
 >
 >     > [!note]
 >     >
->     > （我认为这是更不容易出问题的，在后面会测试和优化）
+>     > （我认为这是更不容易出问题的）
+>     >
+>     > - [ ] 在后面会测试和优化
 >
 >   - 此外要保证写的范围不能超出`INODE_MAX_BYTES`
 >
@@ -87,5 +87,97 @@
 > - [ ] 任务2：编写路径字符串（例如 `/this/is//my/path/so_cool.txt`）的解析逻辑。助教已经在`src/fs/inode.c`中实现了比较困难的部分，需要我完成其中的`namex`函数（可见`inode.c`中的注释部分）：
 >
 >   ```c
->   static Inode* namex(const char* path, bool nameiparent, char* name, OpContext* ct
+>   static Inode* namex(const char* path, bool nameiparent, char* name, OpContext* ctx)
+>   // 给出path对应的inode
+>   // 如果nameiparent == TRUE，返回上一级
+>   // name是路径里最后一个元素
 >   ```
+>
+> - 首先回顾&预习一下以下函数：
+>
+>   ````c
+>   usize inode_look_up(Inode* inode, const char* name, usize* index)
+>   // 在目录inode下寻找文件名为'name'的inode，返回其inode_no
+>   const char *skipelem(const char *path, char *name)
+>   // 提取出path中的下一个元素，并拷贝到name中，然后返回在下个元素之后的后续路径
+>   ````
+>
+> * 实现思路：
+>
+>   * 首先要确认从何处开始寻找
+>
+>     * 相对路径：不是以`'/'`开头，需要获得当前进程所在目录，这是通过给`Proc`结构体增加了`cwd`成员实现的
+>
+>       > [!note]
+>       >
+>       > - [ ] 需要完善`proc.c`中有关`cwd`的修改
+>
+>     * 绝对路径：从根目录开始寻找
+>
+>   * 其次，循环调用`skipelem`来解析路径
+>
+>     > [!note]
+>     >
+>     > 参考了xv6的实现
+
+---
+
+> 小插曲：这里尝试跑通之前的测试时，发现会输出
+>
+> ````shell
+> (warn) init_inodes: no root inode.
+> ````
+>
+> 原因是我们没有从SD卡读取超级块，回忆lab4.2，结合SD卡和磁盘布局：
+>
+> ```shell
+> // SD card distribution
+> /*
+>  512B            FAT32         file system
+> +-----+-----+--------------+----------------+
+> | MBR | ... | boot partion | root partition |
+> +-----+-----+--------------+----------------+
+>  \   1MB   / \    64MB    / \     63MB     /
+>   +-------+   +----------+   +------------+
+> */
+> 
+> // disk layout:
+> // [ MBR block | super block | log blocks | inode blocks | bitmap blocks | data blocks ]
+> ```
+>
+> 完善`init_block_devide`函数
+>
+> ```c
+> void init_block_device()
+> {
+>     // read super block from SD card
+>     Buf b;
+>     b.flags = 0;
+>     b.block_no = (u32)0x0;
+>     virtio_blk_rw(&b);
+>     u8 *data = b.data;
+>     int LBA = *(int *)(data + 0x1CE + 0x8);
+>     sd_read((usize)(LBA + 1), sblock_data);
+>     // print_superblock();
+>     block_device.read = sd_read;
+>     block_device.write = sd_write;
+> }
+> ```
+>
+> 这里的`print_superblock`是为了打印读取后的超级块信息以验证读取是否正确，打印信息如下：
+>
+> ```shell
+> Super Block:
+> ---------------------
+> num_blocks: 1000
+> num_data_blocks: 908
+> num_inodes: 200
+> num_log_blocks: 63
+> log_start: 2
+> inode_start: 65
+> bitmap_start: 91
+> ---------------------
+> ```
+
+---
+

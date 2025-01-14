@@ -7,6 +7,7 @@
 #include <common/pid.h>
 #include <kernel/printk.h>
 #include <kernel/paging.h>
+#include <fs/inode.h>
 
 Proc root_proc;
 BITMAP pid_map;
@@ -166,7 +167,10 @@ NO_RETURN void exit(int code)
 
     acquire_sched_lock();
     release_spinlock(&plock);
-
+    free_pgdir(&this->pgdir);
+    // OpContext ctx;
+    // inodes.put(&ctx, this->cwd);
+    
     sched(ZOMBIE);
     PANIC(); // prevent the warning of 'no_return function returns'
 }
@@ -207,7 +211,6 @@ int kill(int pid)
     release_spinlock(&plock);
     return -1;
 }
-
 
 /*
  * Create a new process copying p as the parent.

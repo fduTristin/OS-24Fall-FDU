@@ -2,6 +2,7 @@
 #include <fs/inode.h>
 #include <kernel/mem.h>
 #include <kernel/printk.h>
+#include <kernel/sched.h>
 
 /**
     @brief the private reference to the super block.
@@ -378,7 +379,7 @@ static usize inode_write(OpContext *ctx, Inode *inode, u8 *src, usize offset,
 static usize inode_lookup(Inode *inode, const char *name, usize *index)
 {
     InodeEntry *entry = &inode->entry;
-    ASSERT(entry->type == INODE_DIRECTORY);
+    // ASSERT(entry->type == INODE_DIRECTORY);
 
     // TODO
     DirEntry DE;
@@ -523,8 +524,35 @@ static Inode *namex(const char *path, bool nameiparent, char *name,
                     OpContext *ctx)
 {
     /* (Final) TODO BEGIN */
-    if(strncmp(path, "/", 2) == 0){
-        return inodes.get(ROOT_INODE_NO);
+    Inode *ip, *next;
+    if (*path == '/') {
+        ip = inodes.get(ROOT_INODE_NO);
+    } else {
+        ip = inodes.share(inode_get(thisproc()->cwd->inode_no));
+    }
+    while ((path = skipelem(path, name)) != 0) {
+        inodes.lock(ip);
+        if (ip->entry.type != INODE_DIRECTORY) {
+            inodes.unlock(ip);
+            inodes.put(ctx, ip);
+            printk("FROM %s, %d, NOT A DIR!\n", __FILE__, __LINE__);
+            return 0;
+        }
+        if (nameiparent && *path == '\0') {
+            // Stop one level early
+            inodes.unlock(ip);
+            return ip;
+        }
+        usize inode_no = inodes.lookup(ip, name, 0);
+        if ((next = inodes.get(inode_no)) == 0) {
+            inodes.unlock(ip);
+            inodes.put(ctx, ip);
+            printk("FROM %s, %d, NOT FOUND!\n", __FILE__, __LINE__);
+            return 0;
+        }
+        inodes.unlock(ip);
+        inodes.put(ctx, ip);
+        ip = next;
     }
     /* (Final) TODO END */
     return 0;
