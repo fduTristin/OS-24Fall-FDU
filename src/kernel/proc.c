@@ -24,7 +24,6 @@ void init_kproc()
     // 2. init the root_proc (finished)
     init_spinlock(&plock);
     init_bitmap(&pid_map);
-
     init_proc(&root_proc);
     root_proc.parent = &root_proc;
     start_proc(&root_proc, kernel_entry, 123456);
@@ -162,7 +161,8 @@ NO_RETURN void exit(int code)
     }
 
     post_sem(&this->parent->childexit);
-
+    free_pgdir(&this->pgdir);
+    kfree_page(this->kstack);
     acquire_sched_lock();
     release_spinlock(&plock);
 
