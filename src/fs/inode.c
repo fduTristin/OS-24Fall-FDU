@@ -417,16 +417,17 @@ static usize inode_insert(OpContext *ctx, Inode *inode, const char *name,
     usize offset = 0;
     usize index = 0;
     usize ret = __UINT64_MAX__;
+    if(inode_lookup(inode,name,NULL)){
+        return -1;
+    }
     while (offset < entry->num_bytes) {
         inode_read(inode, (u8 *)&de, offset, sizeof(DirEntry));
-        if (de.inode_no && !strncmp(de.name, name, FILE_NAME_MAX_LENGTH)) {
-            return -1;
-        }
         if (!de.inode_no) {
             de.inode_no = inode_no;
             strncpy(de.name, name, FILE_NAME_MAX_LENGTH);
             inode_write(ctx, inode, (u8 *)&de, offset, sizeof(DirEntry));
             ret = index;
+            break;
         }
         offset += sizeof(DirEntry);
         index += 1;
@@ -508,25 +509,25 @@ static const char *skipelem(const char *path, char *name)
     return path;
 }
 
-/**
-    @brief look up and return the inode for `path`.
+// /**
+//     @brief look up and return the inode for `path`.
 
-    If `nameiparent`, return the inode for the parent and copy the final
-    path element into `name`.
+//     If `nameiparent`, return the inode for the parent and copy the final
+//     path element into `name`.
     
-    @param path a relative or absolute path. If `path` is relative, it is
-    relative to the current working directory of the process.
+//     @param path a relative or absolute path. If `path` is relative, it is
+//     relative to the current working directory of the process.
 
-    @param[out] name the final path element if `nameiparent` is true.
+//     @param[out] name the final path element if `nameiparent` is true.
 
-    @return Inode* the inode for `path` (or its parent if `nameiparent` is true), 
-    or NULL if such inode does not exist.
+//     @return Inode* the inode for `path` (or its parent if `nameiparent` is true), 
+//     or NULL if such inode does not exist.
 
-    @example
-    namex("/a/b", false, name) = inode of b,
-    namex("/a/b", true, name) = inode of a, setting name = "b",
-    namex("/", true, name) = NULL (because "/" has no parent!)
- */
+//     @example
+//     namex("/a/b", false, name) = inode of b,
+//     namex("/a/b", true, name) = inode of a, setting name = "b",
+//     namex("/", true, name) = NULL (because "/" has no parent!)
+//  */
 static Inode *namex(const char *path, bool nameiparent, char *name,
                     OpContext *ctx)
 {
