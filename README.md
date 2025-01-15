@@ -4,7 +4,7 @@
 
 ### 1.1 任务
 
-> - [x] 任务1：实现`src/fs/file.c`的下列函数：
+> - [x] **任务 1**：实现`src/fs/file.c`的下列函数：
 >
 >   ```c
 >   // 从全局文件表中分配一个空闲的文件
@@ -84,7 +84,7 @@
 
 ---
 
-> - [ ] 任务2：编写路径字符串（例如 `/this/is//my/path/so_cool.txt`）的解析逻辑。助教已经在`src/fs/inode.c`中实现了比较困难的部分，需要我完成其中的`namex`函数（可见`inode.c`中的注释部分）：
+> - [x] **任务 2**：编写路径字符串（例如 `/this/is//my/path/so_cool.txt`）的解析逻辑。助教已经在`src/fs/inode.c`中实现了比较困难的部分，需要我完成其中的`namex`函数（可见`inode.c`中的注释部分）：
 >
 >   ```c
 >   static Inode* namex(const char* path, bool nameiparent, char* name, OpContext* ctx)
@@ -119,6 +119,14 @@
 >     > [!note]
 >     >
 >     > 参考了xv6的实现
+>
+>     > [!tip]
+>     >
+>     > 这里有一件很重要的事情！
+>     >
+>     > 最终如果返回的是非`NULL`的inode，这个`inode`会被隐式地进行`get`或`dup`，之后需要及时地释放（`put`）。
+>     >
+>     > 与此同时，在`namex`函数中的`inode`也需要及时地`inode_put`
 
 ---
 
@@ -133,34 +141,34 @@
 > ```shell
 > // SD card distribution
 > /*
->  512B            FAT32         file system
+> 512B            FAT32         file system
 > +-----+-----+--------------+----------------+
 > | MBR | ... | boot partion | root partition |
 > +-----+-----+--------------+----------------+
->  \   1MB   / \    64MB    / \     63MB     /
->   +-------+   +----------+   +------------+
+> \   1MB   / \    64MB    / \     63MB     /
+> +-------+   +----------+   +------------+
 > */
 > 
 > // disk layout:
 > // [ MBR block | super block | log blocks | inode blocks | bitmap blocks | data blocks ]
 > ```
 >
-> 完善`init_block_devide`函数
+> 完善`init_block_device`函数
 >
 > ```c
 > void init_block_device()
 > {
->     // read super block from SD card
->     Buf b;
->     b.flags = 0;
->     b.block_no = (u32)0x0;
->     virtio_blk_rw(&b);
->     u8 *data = b.data;
->     int LBA = *(int *)(data + 0x1CE + 0x8);
->     sd_read((usize)(LBA + 1), sblock_data);
->     // print_superblock();
->     block_device.read = sd_read;
->     block_device.write = sd_write;
+>  // read super block from SD card
+>  Buf b;
+>  b.flags = 0;
+>  b.block_no = (u32)0x0;
+>  virtio_blk_rw(&b);
+>  u8 *data = b.data;
+>  int LBA = *(int *)(data + 0x1CE + 0x8);
+>  sd_read((usize)(LBA + 1), sblock_data);
+>  // print_superblock();
+>  block_device.read = sd_read;
+>  block_device.write = sd_write;
 > }
 > ```
 >
@@ -180,4 +188,93 @@
 > ```
 
 ---
+
+> - [x] **任务 3**：为了对接用户态程序，我们需要在 src/kernel/sysfile.c 中实现一些系统调用：
+>
+> - [close(3)](https://linux.die.net/man/3/close)
+>
+>   ```c
+>   if (fd < 0 || fd >= NOFILE) {
+>       return -1;
+>   }
+>   auto ft = &thisproc()->oftable;
+>   if (ft->file[fd]) {
+>       file_close(ft->file[fd]);
+>       ft->file[fd] = NULL;
+>   }
+>   ```
+>
+> - [chdir(3)](https://linux.die.net/man/3/chdir)
+>
+>   ```c
+>   OpContext ctx;
+>   Proc *p = thisproc();
+>   Inode *ip;
+>   bcache.begin_op(&ctx);
+>   if ((ip = namei(path, &ctx)) == 0) {
+>       bcache.end_op(&ctx);
+>       printk("FROM %s, %d, NOT FOUND!\n", __FILE__, __LINE__);
+>       return -1;
+>   }
+>   inodes.lock(ip);
+>   if (ip->entry.type != INODE_DIRECTORY) {
+>       inodes.unlock(ip);
+>       inodes.put(&ctx, ip);
+>       bcache.end_op(&ctx);
+>       printk("FROM %s, %d, NOT A DIR!\n", __FILE__, __LINE__);
+>       return -1;
+>   }
+>   inodes.unlock(ip);
+>   inodes.put(&ctx, p->cwd);
+>   bcache.end_op(&ctx);
+>   p->cwd = ip;
+>   return 0;
+>   ```
+>
+>   > [!note]
+>   >
+>   > 参考了xv6的实现
+
+---
+
+> - [x] **任务 4**：实现辅助函数：
+>
+> ```c
+> // 从描述符获得文件
+> static struct file *fd2file(int fd);
+> // 从进程文件表中分配一个空闲的位置给 f
+> int fdalloc(struct file *f);
+> // 根据路径创建一个 Inode
+> Inode *create(const char *path, short type, short major, short minor, OpContext *ctx) 
+> ```
+>
+> * `fd2file`
+>
+>   * 很简单，就是返回当前进程`oftable`对应索引`fd`的文件
+>
+> * `fdalloc`
+>
+>   * 和`file_alloc`类似，操作对象由`ftable`改为进程的`oftable`
+>
+> * `create`
+>
+>   * 参考了xv6的实现
+>
+>   * 首先获取`path`的父目录`dp`以及`name`
+>
+>   * 查找`dp`下是否有`name`，若是，直接返回对应的`inode`
+>
+>   * 否则进行创建，需要添加`'.','..'`项以及`name`项
+>
+>     > [!note]
+>     >
+>     > 需要注意的是异常处理，比如父目录不存在，`type`错误，新的目录项创建错误等等。
+
+---
+
+> - [ ] **任务 5**：参考讲解部分，修改 `inode.c` 中 `read` 和 `write` 函数，以支持设备文件。
+
+
+
+> 另一个插曲：发现我的`inode.c`中的insert逻辑不太对导致效率低下，已修改
 
