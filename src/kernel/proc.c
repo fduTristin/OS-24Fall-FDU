@@ -56,7 +56,9 @@ void init_proc(Proc *p)
                               sizeof(KernelContext) - sizeof(UserContext));
     p->ucontext = (UserContext *)((u64)p->kstack + PAGE_SIZE - 16 -
                                   sizeof(UserContext));
-
+    if (p->cwd)
+        p->cwd = inodes.share(inodes.root);
+    init_oftable(&p->oftable);
     release_spinlock(&plock);
 }
 
@@ -170,7 +172,7 @@ NO_RETURN void exit(int code)
     free_pgdir(&this->pgdir);
     // OpContext ctx;
     // inodes.put(&ctx, this->cwd);
-    
+
     sched(ZOMBIE);
     PANIC(); // prevent the warning of 'no_return function returns'
 }

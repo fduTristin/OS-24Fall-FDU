@@ -180,6 +180,13 @@ typedef struct {
     void (*put)(OpContext *ctx, Inode *inode);
 
     /**
+        @brief unlock and put
+
+        just a syntactic sugar
+    */
+   void (*unlockput)(OpContext *ctx, Inode *inode);
+
+    /**
         @brief read `count` bytes from `inode`, beginning at `offset`, to `dest`.
         
         @return how many bytes you actually read.
@@ -259,9 +266,8 @@ extern InodeTree inodes;
     @param sblock the loaded super block.
     @param cache the initialized block cache.
  */
-void init_inodes(const SuperBlock* sblock, const BlockCache* cache);
+void init_inodes(const SuperBlock *sblock, const BlockCache *cache);
 
-
-Inode* namei(const char* path, OpContext* ctx);
-Inode* nameiparent(const char* path, char* name, OpContext* ctx);
-void stati(Inode* ip, struct stat* st);
+Inode *namei(const char *path, OpContext *ctx);
+Inode *nameiparent(const char *path, char *name, OpContext *ctx);
+void stati(Inode *ip, struct stat *st);

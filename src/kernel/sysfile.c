@@ -37,7 +37,10 @@ struct iovec {
 static struct file *fd2file(int fd)
 {
     /* (Final) TODO BEGIN */
-    return NULL;
+    if (fd < 0 || fd >= NOFILE)
+        return NULL;
+    else
+        return thisproc()->oftable.file[fd];
     /* (Final) TODO END */
 }
 
@@ -48,7 +51,16 @@ static struct file *fd2file(int fd)
 int fdalloc(struct file *f)
 {
     /* (Final) TODO BEGIN */
-    
+    int fd;
+    Proc *p = thisproc();
+
+    for (fd = 0; fd < NOFILE; fd++) {
+        if (p->oftable.file[fd] == 0) {
+            p->oftable.file[fd] = f;
+            return fd;
+        }
+    }
+
     /* (Final) TODO END */
     return -1;
 }
@@ -123,7 +135,15 @@ define_syscall(writev, int fd, struct iovec *iov, int iovcnt)
 define_syscall(close, int fd)
 {
     /* (Final) TODO BEGIN */
-    
+    if (fd < 0 || fd >= NOFILE) {
+        printk("From %s, %d, fd out of range\n", __FILE__, __LINE__);
+        return -1;
+    }
+    auto ft = &thisproc()->oftable;
+    if (ft->file[fd]) {
+        file_close(ft->file[fd]);
+        ft->file[fd] = NULL;
+    }
     /* (Final) TODO END */
     return 0;
 }
@@ -261,9 +281,49 @@ Inode *create(const char *path, short type, short major, short minor,
               OpContext *ctx)
 {
     /* (Final) TODO BEGIN */
-    
+    Inode *ip, *dp;
+    char name[FILE_NAME_MAX_LENGTH];
+
+    if ((dp = nameiparent(path, name, ctx)) == NULL) {
+        printk("FROM %s, %d, PARENT DOES NOT EXIST!\n", __FILE__, __LINE__);
+        return NULL;
+    }
+
+    inodes.lock(dp);
+    usize inode_no;
+    if ((inode_no = inodes.lookup(dp, name, 0))) {
+        inodes.unlockput(ctx, dp);
+        ip = inodes.get(inode_no);
+        inodes.lock(ip);
+        if (type == INODE_REGULAR && ip->entry.type == INODE_REGULAR)
+            return ip;
+        printk("FROM %s, %d, TYPE ERROR!\n", __FILE__, __LINE__);
+        inodes.unlockput(ctx, ip);
+        return 0;
+    }
+    inode_no = inodes.alloc(ctx, type);
+    ip = inodes.get(inode_no);
+    inodes.lock(ip);
+    ip->entry.major = major;
+    ip->entry.minor = minor;
+    ip->entry.num_links = 1;
+    inodes.sync(ctx, ip, TRUE);
+
+    if (type == INODE_DIRECTORY) { // Create . and .. entries.
+        dp->entry.num_links++;
+        inodes.sync(ctx, dp, TRUE);
+        // No ip->nlink++ for ".": avoid cyclic ref count.
+        if (inodes.insert(ctx, ip, ".", ip->inode_no) == (usize)(-1) ||
+            inodes.insert(ctx, ip, "..", dp->inode_no) == (usize)(-1))
+            printk("FROM %s, %d, create '.' and '..' failure!\n", __FILE__,
+                   __LINE__);
+    }
+    if (inodes.insert(ctx, dp, name, ip->inode_no) == (usize)(-1)) {
+        printk("FROM %s, %d, create failure!\n", __FILE__, __LINE__);
+    }
+    inodes.unlockput(ctx, dp);
     /* (Final) TODO END */
-    return 0;
+    return ip;
 }
 
 define_syscall(openat, int dirfd, const char *path, int omode)
@@ -300,8 +360,7 @@ define_syscall(openat, int dirfd, const char *path, int omode)
     if ((f = file_alloc()) == 0 || (fd = fdalloc(f)) < 0) {
         if (f)
             file_close(f);
-        inodes.unlock(ip);
-        inodes.put(&ctx, ip);
+        inodes.unlockput(&ctx, ip);
         bcache.end_op(&ctx);
         return -1;
     }
@@ -335,8 +394,7 @@ define_syscall(mkdirat, int dirfd, const char *path, int mode)
         bcache.end_op(&ctx);
         return -1;
     }
-    inodes.unlock(ip);
-    inodes.put(&ctx, ip);
+    inodes.unlockput(&ctx, ip);
     bcache.end_op(&ctx);
     return 0;
 }
@@ -360,8 +418,7 @@ define_syscall(mknodat, int dirfd, const char *path, mode_t mode, dev_t dev)
         bcache.end_op(&ctx);
         return -1;
     }
-    inodes.unlock(ip);
-    inodes.put(&ctx, ip);
+    inodes.unlockput(&ctx, ip);
     bcache.end_op(&ctx);
     return 0;
 }
@@ -374,13 +431,32 @@ define_syscall(chdir, const char *path)
      * Change the cwd (current working dictionary) of current process to 'path'.
      * You may need to do some validations.
      */
+    OpContext ctx;
+    Proc *p = thisproc();
+    Inode *ip;
+    bcache.begin_op(&ctx);
+    if ((ip = namei(path, &ctx)) == NULL) {
+        bcache.end_op(&ctx);
+        printk("FROM %s, %d, NOT FOUND!\n", __FILE__, __LINE__);
+        return -1;
+    }
+    inodes.lock(ip);
+    if (ip->entry.type != INODE_DIRECTORY) {
+        inodes.unlockput(&ctx, ip);
+        bcache.end_op(&ctx);
+        printk("FROM %s, %d, NOT A DIR!\n", __FILE__, __LINE__);
+        return -1;
+    }
+    inodes.unlock(ip);
+    inodes.put(&ctx, p->cwd);
+    bcache.end_op(&ctx);
+    p->cwd = ip;
     return 0;
     /* (Final) TODO END */
 }
 
 define_syscall(pipe2, int pipefd[2], int flags)
 {
-
     /* (Final) TODO BEGIN */
     return 0;
     /* (Final) TODO END */

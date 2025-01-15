@@ -54,7 +54,7 @@ void kernel_entry()
      * 
      * Map init.S to user space and trap_return to run icode.
      */
-    // set_return_addr(trap_return);
+    set_return_addr(trap_return);
     /* (Final) TODO END */
 }
 

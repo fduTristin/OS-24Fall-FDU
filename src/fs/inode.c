@@ -252,6 +252,12 @@ static void inode_put(OpContext *ctx, Inode *inode)
     release_spinlock(&lock);
 }
 
+static void inode_unlockput(OpContext *ctx, Inode *inode)
+{
+    inode_unlock(inode);
+    inode_put(ctx, inode);
+}
+
 /**
     @brief get which block is the offset of the inode in.
 
@@ -382,16 +388,16 @@ static usize inode_lookup(Inode *inode, const char *name, usize *index)
     // ASSERT(entry->type == INODE_DIRECTORY);
 
     // TODO
-    DirEntry DE;
+    DirEntry de;
     usize idx = 0;
     usize offset = 0;
     while (offset < entry->num_bytes) {
-        inode_read(inode, (u8 *)&DE, offset, sizeof(DirEntry));
-        if (DE.inode_no && !strncmp(DE.name, name, FILE_NAME_MAX_LENGTH)) {
+        inode_read(inode, (u8 *)&de, offset, sizeof(DirEntry));
+        if (de.inode_no && !strncmp(de.name, name, FILE_NAME_MAX_LENGTH)) {
             if (index) {
                 *index = idx;
             }
-            return DE.inode_no;
+            return de.inode_no;
         }
         idx += 1;
         offset += sizeof(DirEntry);
@@ -407,28 +413,28 @@ static usize inode_insert(OpContext *ctx, Inode *inode, const char *name,
     ASSERT(entry->type == INODE_DIRECTORY);
 
     // TODO
-    DirEntry DE;
+    DirEntry de;
     usize offset = 0;
     usize index = 0;
     usize ret = __UINT64_MAX__;
     while (offset < entry->num_bytes) {
-        inode_read(inode, (u8 *)&DE, offset, sizeof(DirEntry));
-        if (DE.inode_no && !strncmp(DE.name, name, FILE_NAME_MAX_LENGTH)) {
+        inode_read(inode, (u8 *)&de, offset, sizeof(DirEntry));
+        if (de.inode_no && !strncmp(de.name, name, FILE_NAME_MAX_LENGTH)) {
             return -1;
         }
-        if (!DE.inode_no) {
-            DE.inode_no = inode_no;
-            strncpy(DE.name, name, FILE_NAME_MAX_LENGTH);
-            inode_write(ctx, inode, (u8 *)&DE, offset, sizeof(DirEntry));
+        if (!de.inode_no) {
+            de.inode_no = inode_no;
+            strncpy(de.name, name, FILE_NAME_MAX_LENGTH);
+            inode_write(ctx, inode, (u8 *)&de, offset, sizeof(DirEntry));
             ret = index;
         }
         offset += sizeof(DirEntry);
         index += 1;
     }
     if (ret == __UINT64_MAX__) {
-        DE.inode_no = inode_no;
-        strncpy(DE.name, name, FILE_NAME_MAX_LENGTH);
-        inode_write(ctx, inode, (u8 *)&DE, offset, sizeof(DirEntry));
+        de.inode_no = inode_no;
+        strncpy(de.name, name, FILE_NAME_MAX_LENGTH);
+        inode_write(ctx, inode, (u8 *)&de, offset, sizeof(DirEntry));
         ret = index;
     }
     return ret;
@@ -439,9 +445,9 @@ static void inode_remove(OpContext *ctx, Inode *inode, usize index)
 {
     // TODO
     usize offset = index * sizeof(DirEntry);
-    DirEntry DE;
-    memset(&DE, 0, sizeof(DirEntry));
-    inode_write(ctx, inode, (u8 *)&DE, offset, sizeof(DirEntry));
+    DirEntry de;
+    memset(&de, 0, sizeof(DirEntry));
+    inode_write(ctx, inode, (u8 *)&de, offset, sizeof(DirEntry));
     if (offset + sizeof(DirEntry) == inode->entry.num_bytes) {
         inode->entry.num_bytes -= sizeof(DirEntry);
     }
@@ -456,6 +462,7 @@ InodeTree inodes = {
     .clear = inode_clear,
     .share = inode_share,
     .put = inode_put,
+    .unlockput = inode_unlockput,
     .read = inode_read,
     .write = inode_write,
     .lookup = inode_lookup,
@@ -528,15 +535,14 @@ static Inode *namex(const char *path, bool nameiparent, char *name,
     if (*path == '/') {
         ip = inodes.get(ROOT_INODE_NO);
     } else {
-        ip = inodes.share(inode_get(thisproc()->cwd->inode_no));
+        ip = inodes.share(thisproc()->cwd);
     }
     while ((path = skipelem(path, name)) != 0) {
         inodes.lock(ip);
         if (ip->entry.type != INODE_DIRECTORY) {
-            inodes.unlock(ip);
-            inodes.put(ctx, ip);
+            inodes.unlockput(ctx, ip);
             printk("FROM %s, %d, NOT A DIR!\n", __FILE__, __LINE__);
-            return 0;
+            return NULL;
         }
         if (nameiparent && *path == '\0') {
             // Stop one level early
@@ -544,18 +550,21 @@ static Inode *namex(const char *path, bool nameiparent, char *name,
             return ip;
         }
         usize inode_no = inodes.lookup(ip, name, 0);
-        if ((next = inodes.get(inode_no)) == 0) {
-            inodes.unlock(ip);
-            inodes.put(ctx, ip);
+        if (inode_no == 0) {
+            inodes.unlockput(ctx, ip);
             printk("FROM %s, %d, NOT FOUND!\n", __FILE__, __LINE__);
-            return 0;
+            return NULL;
         }
-        inodes.unlock(ip);
-        inodes.put(ctx, ip);
+        next = inodes.get(inode_no);
+        inodes.unlockput(ctx, ip);
         ip = next;
     }
+    if (nameiparent) {
+        inodes.put(ctx, ip);
+        return NULL;
+    }
     /* (Final) TODO END */
-    return 0;
+    return ip;
 }
 
 Inode *namei(const char *path, OpContext *ctx)
