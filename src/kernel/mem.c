@@ -1,6 +1,7 @@
 #include <aarch64/mmu.h>
 #include <common/rc.h>
 #include <common/spinlock.h>
+#include <common/string.h>
 #include <driver/memlayout.h>
 #include <kernel/mem.h>
 #include <kernel/printk.h>
@@ -82,7 +83,8 @@ void kinit()
     init_spinlock(&lock2);
 
     u64 addr = (u64)end;
-    zero_page = (void*)(PAGE_BASE(addr) + PAGE_SIZE);
+    zero_page = (void *)(PAGE_BASE(addr) + PAGE_SIZE);
+    memset(zero_page, 0, PAGE_SIZE);
     free_pages = (ListNode *)(zero_page + PAGE_SIZE);
     ListNode *cur = free_pages;
     while (1) {
@@ -98,6 +100,11 @@ void kinit()
     for (int i = 0; i != 512; i++) {
         slabs[i] = NULL;
     }
+    for (int i = 0; i != ALL_PAGE_COUNT; i++) {
+        if (pages[i].ref.count) {
+            printk("pages[%d]: %lld\n", i, pages[i].ref.count);
+        }
+    }
 }
 
 void *kalloc_page()
@@ -105,19 +112,29 @@ void *kalloc_page()
     increment_rc(&kalloc_page_cnt);
     acquire_spinlock(&lock1);
     void *ret = (void *)(free_pages);
+    if (ret == NULL) {
+        PANIC();
+    }
     free_pages = free_pages->next;
     release_spinlock(&lock1);
+    ASSERT(pages[PAGE_INDEX(ret)].ref.count == 0);
+    increment_rc(&pages[PAGE_INDEX(ret)].ref);
     return ret;
 }
 
 void kfree_page(void *p)
 {
-    decrement_rc(&kalloc_page_cnt);
-    acquire_spinlock(&lock1);
-    free_pages->prev = (ListNode *)p;
-    free_pages->prev->next = free_pages;
-    free_pages = free_pages->prev;
-    release_spinlock(&lock1);
+    if (p == zero_page)
+        return;
+    u64 idx = PAGE_INDEX(p);
+    if (decrement_rc(&pages[idx].ref)) {
+        decrement_rc(&kalloc_page_cnt);
+        acquire_spinlock(&lock1);
+        free_pages->prev = (ListNode *)p;
+        free_pages->prev->next = free_pages;
+        free_pages = free_pages->prev;
+        release_spinlock(&lock1);
+    }
     return;
 }
 

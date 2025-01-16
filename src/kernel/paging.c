@@ -15,7 +15,11 @@
 
 void init_sections(ListNode *section_head) {
     /* (Final) TODO BEGIN */
-
+    struct section* heap = (struct section*)kalloc(sizeof(struct section));
+    memset(heap, 0, sizeof(struct section));
+    heap->begin = heap->end = 0;
+    heap->flags = ST_HEAP;
+    _insert_into_list(section_head, &heap->stnode);
     /* (Final) TODO END */
 }
 

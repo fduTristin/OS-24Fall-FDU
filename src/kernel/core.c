@@ -13,6 +13,7 @@ void trap_return();
 NO_RETURN void idle_entry()
 {
     set_cpu_on();
+    kalloc_test();
     while (1) {
         yield();
         if (panic_flag)

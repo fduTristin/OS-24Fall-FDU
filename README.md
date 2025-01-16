@@ -80,7 +80,7 @@
 >
 > - `free_oftable`
 >
->   - 暂时不知道有什么用，之后再说
+>   - ### 任务5
 
 ---
 
@@ -278,3 +278,162 @@
 
 > 另一个插曲：发现我的`inode.c`中的insert逻辑不太对导致效率低下，已修改
 
+## 2. Fork & Exec
+
+### 2.1. ELF可执行文件格式
+
+```c
+/**
+ * ELF Header：ELF 文件的入口点，位于文件的开头，描述了文件的整体布局和重要属性。
+ */
+typedef struct {
+  	// 标识 ELF 文件的魔数、架构类型（32/64 位）、字节序（小端/大端）等。
+	unsigned char e_ident[EI_NIDENT];
+  
+  	// 文件类型（可执行文件、共享库、目标文件等）。
+    Elf64_Half    e_type;
+  
+  	// 指定目标机器架构（如 x86、ARM）。
+    Elf64_Half    e_machine;
+  
+  	// ELF 版本信息。
+    Elf64_Word    e_version;
+  
+  	// 程序入口地址（可执行文件运行时的起始地址）。
+    Elf64_Addr    e_entry;
+  
+  	// 程序头表（Program Header Table）的偏移量。
+    Elf64_Off     e_phoff;
+  
+  	// 段头表（Section Header Table）的偏移量。
+    Elf64_Off     e_shoff;
+    Elf64_Word    e_flags;
+    Elf64_Half    e_ehsize;
+    Elf64_Half    e_phentsize;
+    Elf64_Half    e_phnum;
+    Elf64_Half    e_shentsize;
+    Elf64_Half    e_shnum;
+    Elf64_Half    e_shstrndx;
+} Elf64_Ehdr;
+
+
+/**
+ * Program Header Table (PHT)：描述程序运行时需要加载的段信息，主要用于可执行文件和共享库。
+ */
+typedef struct {
+  	// 段类型（如加载段、动态段、解释器段等）。
+    Elf64_Word    p_type;
+  
+  	// 段的权限（可读、可写、可执行）。
+    Elf64_Word    p_flags;
+  
+  	// 段在文件中的偏移量。
+    Elf64_Off     p_offset;
+  
+  	// 段的虚拟地址（内存中的地址）。
+    Elf64_Addr    p_vaddr;
+  
+  	//  段的物理地址（针对嵌入式设备）。
+    Elf64_Addr    p_paddr;
+  
+  	// 段在文件中的大小。
+    Elf64_Xword   p_filesz;
+  
+  	// 段在内存中的大小（可能大于文件中大小）。
+    Elf64_Xword   p_memsz;
+  
+  	// 段的对齐要求。
+    Elf64_Xword   p_align;
+} Elf64_Phdr;
+```
+
+### 2.2. `fork()`系统调用
+
+### 2.3. `execve()`系统调用
+
+```c
+/**
+ * @path: 可执行文件的地址。
+ * @argv: 运行文件的参数（即 main 函数中的 argv ）。
+ * @envp: 环境变量
+ */
+int execve(const char* path, char* const argv[], char* const envp[]) 
+```
+
+* `execve()` 替换当前进程为 `path` 所指的 ELF 格式文件，加载该 ELF 文件，并运行该程序。你需要读取 `Elf64_Ehdr` 和 `Elf64_Phdr` 结构，注意根据 `p_flags` 的信息判断 section 类型，把 `p_vaddr`, `p_memsz`, `p_offset` 等信息填入到实验框架中的 `struct section` 对应位置；将文件中的代码和数据加载到内存中，并**设置好用户栈、堆等空间**；最后跳转到 ELF 文件的入口地址开始执行
+
+> - [ ] **思考** 
+>
+> 1. 替换 ELF 文件时，当前进程的哪些部分需要释放，哪些部分不需要？
+> 2. 是否需要把 `argv` 和 `envp` 中的实际文本信息复制到新进程的地址空间中？
+
+大致流程：
+
+1. 尝试从`path`加载文件
+
+   ```c
+   if ((ip = namei(path, &ctx)) == 0) {
+       bcache.end_op(&ctx);
+       printk("Path \033[47;31m%s\033[0m not found!\n", path);
+       return -1;
+   }
+   ```
+
+   * 添加了路径检查
+
+2. 读取`ELF_header`
+
+   * 首先需要检查格式：
+
+     * `ELF_header`长度合法性
+
+       ```c
+       if (inodes.read(ip, (u8 *)(&elf), 0, sizeof(Elf64_Ehdr)) !=
+           sizeof(Elf64_Ehdr)) {
+           Error;
+           printk("Elf header maybe corrupted\n");
+           goto bad;
+       };
+       ```
+
+       > [!note]
+       >
+       > `Error`仅仅是一个宏定义，输出`(Error)`
+       >
+       > 这里的`bad`参照了xv6的设计，意为处理`execve`中的非法情况
+       >
+       > ```c
+       > bad:
+       >     if (pgdir) {
+       >         free_pgdir(pgdir);
+       >     }
+       >     if (ip) {
+       >         inodes.unlockput(&ctx, ip);
+       >         bcache.end_op(&ctx);
+       >     }
+       > ```
+
+     * `magic number` & `architecture`
+
+       ```c
+       if (strncmp((const char *)e_ident, ELFMAG, SELFMAG) != 0 ||
+           e_ident[EI_CLASS] != ELFCLASS64) {
+           Error;
+           printk("File format not supported.\n");
+           goto bad;
+       }
+       ```
+
+   * 获取`e_phoff,e_phnum`
+
+   
+
+> - [x] `mem.c`修改：
+>
+> * `zero_page`：将之前所有可分配页的第一个固定为全零页，不能再分配
+> * `struct page pages[ALL_PAGE_COUNT]`：用于记录每一页的`ref cnt`
+>
+> * `kalloc_page()`：增加`increment_rc(&pages[PAGE_INDEX(ret)].ref);`（也就是初始化为1，添加了检查初始值是否为0）
+> * `kfree_page()`：首先`decrement_rc(&pages[idx].ref)`，如果`ref == 0`，才真正释放这一页
+> * `left_page_cnt()`：很简单，就是返回`ALLOCATABLE_PAGE_COUNT - kalloc_page_cnt.count`
+> * `get_zero_page()`：就是返回`zero_page`
