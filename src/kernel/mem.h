@@ -4,7 +4,8 @@
 #include <common/list.h>
 #include <common/rc.h>
 
-#define PAGE_COUNT ((P2K(PHYSTOP) - PAGE_BASE((u64) & end)) / PAGE_SIZE - 1)
+#define ALLOCATABLE_PAGE_COUNT ((P2K(PHYSTOP) - PAGE_BASE((u64) & end)) / PAGE_SIZE - 1)
+#define ALL_PAGE_COUNT ((PHYSTOP - EXTMEM) / PAGE_SIZE)
 
 struct page {
     RefCount ref;
