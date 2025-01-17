@@ -3,6 +3,7 @@
 #include <aarch64/mmu.h>
 #include <kernel/proc.h>
 
+#define SECTION_TYPE u16
 #define ST_FILE 1
 #define ST_SWAP (1 << 1)
 #define ST_RO (1 << 2)

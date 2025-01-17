@@ -3,14 +3,15 @@
 #include <kernel/mem.h>
 #include <kernel/pt.h>
 #include <kernel/printk.h>
+#include <kernel/paging.h>
 
+/**
+    @brief Return a pointer to the PTE (Page Table Entry) for virtual address 'va'
+    @note If the entry not exists (NEEDN'T BE VALID), allocate it if alloc=true, or return NULL if false.
+    @note THIS ROUTINUE GETS THE PTE, NOT THE PAGE DESCRIBED BY PTE.
+ */
 PTEntriesPtr get_pte(struct pgdir *pgdir, u64 va, bool alloc)
 {
-    // TODO:
-    // Return a pointer to the PTE (Page Table Entry) for virtual address 'va'
-    // If the entry not exists (NEEDN'T BE VALID), allocate it if alloc=true, or return NULL if false.
-    // THIS ROUTINUE GETS THE PTE, NOT THE PAGE DESCRIBED BY PTE.
-
     PTEntriesPtr pt0 = pgdir->pt;
     if (pt0 == NULL) {
         if (!alloc) {
@@ -26,16 +27,16 @@ PTEntriesPtr get_pte(struct pgdir *pgdir, u64 va, bool alloc)
             return NULL;
         }
         pt1 = kalloc_page();
-        memset((void*)pt1, 0, PAGE_SIZE);
+        memset((void *)pt1, 0, PAGE_SIZE);
         pt0[VA_PART0(va)] = K2P(pt1) | PTE_TABLE;
     }
     PTEntriesPtr pt2 = (PTEntriesPtr)P2K(PTE_ADDRESS(pt1[VA_PART1(va)]));
-    if (!(pt1[VA_PART1(va)]& PTE_VALID)) {
+    if (!(pt1[VA_PART1(va)] & PTE_VALID)) {
         if (!alloc) {
             return NULL;
         }
         pt2 = kalloc_page();
-        memset((void*)pt2, 0, PAGE_SIZE);
+        memset((void *)pt2, 0, PAGE_SIZE);
         pt1[VA_PART1(va)] = K2P(pt2) | PTE_TABLE;
     }
     PTEntriesPtr pt3 = (PTEntriesPtr)P2K(PTE_ADDRESS(pt2[VA_PART2(va)]));
@@ -44,7 +45,7 @@ PTEntriesPtr get_pte(struct pgdir *pgdir, u64 va, bool alloc)
             return NULL;
         }
         pt3 = kalloc_page();
-        memset((void*)pt3, 0, PAGE_SIZE);
+        memset((void *)pt3, 0, PAGE_SIZE);
         pt2[VA_PART2(va)] = K2P(pt3) | PTE_TABLE;
     }
     return pt3 + VA_PART3(va);
@@ -52,7 +53,10 @@ PTEntriesPtr get_pte(struct pgdir *pgdir, u64 va, bool alloc)
 
 void init_pgdir(struct pgdir *pgdir)
 {
-    pgdir->pt = NULL;
+    pgdir->pt = (PTEntriesPtr)kalloc_page();
+    memset(pgdir->pt, NULL, PAGE_SIZE);
+    init_spinlock(&pgdir->lock);
+    init_sections(&pgdir->section_head);
 }
 
 void free_pgdir(struct pgdir *pgdir)

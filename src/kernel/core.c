@@ -13,7 +13,7 @@ void trap_return();
 NO_RETURN void idle_entry()
 {
     set_cpu_on();
-    kalloc_test();
+    // kalloc_test();
     while (1) {
         yield();
         if (panic_flag)
@@ -32,10 +32,12 @@ void kernel_entry()
     init_filesystem();
 
     printk("Hello world! (Core %lld)\n", cpuid());
-    proc_test();
-    vm_test();
-    user_proc_test();
-    io_test();
+    pgfault_first_test();
+    pgfault_second_test();
+    // proc_test();
+    // vm_test();
+    // user_proc_test();
+    // io_test();
 
     /* LAB 4 TODO 3 BEGIN */
 

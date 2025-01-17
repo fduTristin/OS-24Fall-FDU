@@ -1,0 +1,755 @@
+[  2%] Built target mmaptest
+[ 11%] Built target fs
+[ 20%] Built target aarch64
+[ 31%] Built target common
+[ 48%] Built target kernelx
+[ 57%] Built target driver
+[ 61%] Built target user
+[ 62%] Building C object src/test/CMakeFiles/test.dir/paging_test.c.o
+[ 63%] Linking C static library libtest.a
+[ 71%] Built target test
+[ 72%] Linking C executable kernel8.elf
+[ 75%] Built target kernel8.elf
+[ 76%] Generating kernel8.asm
+[ 77%] Generating kernel8.hdr
+[ 78%] Generating kernel8.img
+[ 78%] Built target kernel
+[ 81%] Built target cat
+[ 83%] Built target echo
+[ 86%] Built target init
+[ 88%] Built target ls
+[ 91%] Built target sh
+[ 93%] Built target mkdir
+[ 96%] Built target usertests
+[ 98%] Built target mkfs
+[ 98%] Built target user_bin
+[100%] Generating sd.img
+mkfs.fat 4.2 (2021-01-31)
+nmeta 92 (boot, super, log blocks 63 inode blocks 26, bitmap blocks 1) blocks 908 total 1000
+input: '../build/src/user/init' -> 'init'
+input: '../build/src/user/cat' -> 'cat'
+input: '../build/src/user/sh' -> 'sh'
+input: '../build/src/user/echo' -> 'echo'
+input: '../build/src/user/ls' -> 'ls'
+input: '../build/src/user/mkfs' -> 'mkfs'
+input: '../build/src/user/mkdir' -> 'mkdir'
+input: '../build/src/user/usertests' -> 'usertests'
+input: '../build/src/user/mmaptest' -> 'mmaptest'
+balloc: first 627 blocks have been allocated
+balloc: write bitmap block at sector 91
+Checking that no-one is using this disk right now ... OK
+
+Disk /root/data/OS-24Fall-FDU/build/boot/sd.img: 128 MiB, 134217728 bytes, 262144 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0xa49b67f4
+
+Old situation:
+
+Device                                      Boot  Start    End Sectors Size Id Type
+/root/data/OS-24Fall-FDU/build/boot/sd.img1        2048 133119  131072  64M  c W95 FAT32 (LBA)
+/root/data/OS-24Fall-FDU/build/boot/sd.img2      133120 262143  129024  63M 83 Linux
+
+>>> Created a new DOS (MBR) disklabel with disk identifier 0xd52d5723.
+/root/data/OS-24Fall-FDU/build/boot/sd.img1: Created a new partition 1 of type 'W95 FAT32 (LBA)' and of size 64 MiB.
+/root/data/OS-24Fall-FDU/build/boot/sd.img2: Created a new partition 2 of type 'Linux' and of size 63 MiB.
+/root/data/OS-24Fall-FDU/build/boot/sd.img3: Done.
+
+New situation:
+Disklabel type: dos
+Disk identifier: 0xd52d5723
+
+Device                                      Boot  Start    End Sectors Size Id Type
+/root/data/OS-24Fall-FDU/build/boot/sd.img1        2048 133119  131072  64M  c W95 FAT32 (LBA)
+/root/data/OS-24Fall-FDU/build/boot/sd.img2      133120 262143  129024  63M 83 Linux
+
+The partition table has been altered.
+Syncing disks.
+> dd if=/dev/zero of=/root/data/OS-24Fall-FDU/build/boot/boot.img seek=131071 bs=512 count=1
+> mkfs.vfat -F 32 -s 1 /root/data/OS-24Fall-FDU/build/boot/boot.img
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img /root/data/OS-24Fall-FDU/build/src/kernel8.img ::kernel8.img;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img armstub8-rpi4.bin ::armstub8-rpi4.bin;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img bootcode.bin ::bootcode.bin;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img config.txt ::config.txt;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img COPYING.linux ::COPYING.linux;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img fixup_cd.dat ::fixup_cd.dat;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img fixup.dat ::fixup.dat;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img fixup4.dat ::fixup4.dat;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img fixup4cd.dat ::fixup4cd.dat;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img LICENCE.broadcom ::LICENCE.broadcom;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img start_cd.elf ::start_cd.elf;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img start.elf ::start.elf;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img start4.elf ::start4.elf;
+> mcopy -i /root/data/OS-24Fall-FDU/build/boot/boot.img start4cd.elf ::start4cd.elf;
+> cc ../src/user/mkfs/main.c -o ../build/mkfs -I../src/
+../build/src/user/init ../build/src/user/cat ../build/src/user/sh ../build/src/user/echo ../build/src/user/ls ../build/src/user/mkfs ../build/src/user/mkdir ../build/src/user/usertests ../build/src/user/mmaptest 
+> ../build/mkfs /root/data/OS-24Fall-FDU/build/boot/fs.img ../build/src/user/init ../build/src/user/cat ../build/src/user/sh ../build/src/user/echo ../build/src/user/ls ../build/src/user/mkfs ../build/src/user/mkdir ../build/src/user/usertests ../build/src/user/mmaptest 
+> dd if=/dev/zero of=/root/data/OS-24Fall-FDU/build/boot/sd.img seek=262143 bs=512 count=1
+> printf "2048, 65536K, c,\n133120, 64512K, L,\n" | sfdisk /root/data/OS-24Fall-FDU/build/boot/sd.img
+> dd if=/root/data/OS-24Fall-FDU/build/boot/boot.img of=/root/data/OS-24Fall-FDU/build/boot/sd.img seek=2048 conv=notrunc
+> dd if=/root/data/OS-24Fall-FDU/build/boot/fs.img of=/root/data/OS-24Fall-FDU/build/boot/sd.img seek=133120 conv=notrunc
+[100%] Built target image
+CPU 0: hello
+CPU 3: hello
+CPU 1: hello
+CPU 2: hello
+Super Block:
+---------------------
+num_blocks: 1000
+num_data_blocks: 908
+num_inodes: 200
+num_log_blocks: 63
+log_start: 2
+inode_start: 65
+bitmap_start: 91
+---------------------
+Hello world! (Core 2)
+=====/root/data/OS-24Fall-FDU/src/test/paging_test.c:37 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC0!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC1!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:1073824432 PANIC-281473902923384!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC2!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:1073824384 PANIC-281473902923384!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:1073824336 PANIC-281473902923384!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:1073824288 PANIC-281473902923384!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:1073824240 PANIC-281473902923384!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====/root/data/OS-24Fall-FDU/src/kernel/cpu.c:101 PANIC3!=====
+=====QEMU: Terminated
+[100%] Built target qemu
