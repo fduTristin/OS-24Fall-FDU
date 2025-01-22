@@ -12,15 +12,26 @@
 #include <kernel/pt.h>
 #include <kernel/sched.h>
 
+#define ISS_TYPE_MASK 0x3c
+#define ISS_TRANS_FAULT 0X4
+#define ISS_ACC_FAULT 0X8
+#define ISS_PERMI_FAULT 0Xc
+
+void init_section(struct section *sec)
+{
+    memset(sec, 0, sizeof(struct section));
+    init_list_node(&sec->stnode);
+}
+
 void init_sections(ListNode *section_head)
 {
     /* (Final) TODO BEGIN */
     init_list_node(section_head);
-    struct section *heap = (struct section *)kalloc(sizeof(struct section));
-    memset(heap, 0, sizeof(struct section));
-    heap->begin = heap->end = 0;
-    heap->flags = ST_HEAP;
-    _insert_into_list(section_head, &heap->stnode);
+    // struct section *heap = (struct section *)kalloc(sizeof(struct section));
+    // memset(heap, 0, sizeof(struct section));
+    // heap->begin = heap->end = 0;
+    // heap->flags = ST_HEAP;
+    // _insert_into_list(section_head, &heap->stnode);
     /* (Final) TODO END */
 }
 
@@ -69,7 +80,7 @@ struct section *find_type_section(struct pgdir *pd, SECTION_TYPE st)
         if (p == &pd->section_head)
             continue;
         struct section *sec = container_of(p, struct section, stnode);
-        if (sec->flags == ST_HEAP) {
+        if (sec->flags == st) {
             return sec;
         }
     }
@@ -124,9 +135,10 @@ u64 sbrk(i64 size)
 
 int pgfault_handler(u64 iss)
 {
-    // Proc *p = thisproc();
-    // struct pgdir *pd = &p->pgdir;
-    // u64 addr = arch_get_far(); // Attempting to access this address caused the page fault
+    Proc *p = thisproc();
+    struct pgdir *pd = &p->pgdir;
+    u64 addr =
+            arch_get_far(); // Attempting to access this address caused the page fault
 
     /** 
      * (Final) TODO BEGIN
@@ -136,6 +148,106 @@ int pgfault_handler(u64 iss)
      * 3. Handle the page fault accordingly.
      * 4. Return to user code or kill the process.
      */
+
+    // printk("-----------\npage fault!\n");
+    // printk("my pid: %d\n", p->pid);
+    // printk("addr: %llx\n", addr);
+    struct section *sec = NULL;
+    acquire_spinlock(&pd->lock);
+    _for_in_list(p, &pd->section_head)
+    {
+        if (p == &pd->section_head) {
+            continue;
+        }
+        sec = container_of(p, struct section, stnode);
+        if (sec->begin <= addr && addr < sec->end)
+            break;
+        else
+            sec = NULL;
+    }
+    ASSERT(sec);
+    /**
+     * @todo mmap
+    */
+    void *pg = NULL;
+    // printk("flags: %lld\n", sec->flags);
+    // while (1)
+    // {
+    // }
+    switch (sec->flags) {
+    case ST_HEAP:
+        // printk("heap\n");
+        pg = kalloc_page();
+        vmmap(pd, addr, p, PTE_USER_DATA | PTE_RW);
+        // printk("vmmap\n");
+        break;
+    case ST_DATA:
+        // printk("bss\n");
+        if ((ISS_TYPE_MASK & iss) == ISS_PERMI_FAULT) {
+            pg = kalloc_page();
+            auto pte = get_pte(pd, addr, false);
+            ASSERT(pte);
+            memcpy(pg, (void *)P2K(PTE_ADDRESS(*pte)),
+                   PAGE_SIZE); // copy the previous page
+            kfree_page((void *)P2K(
+                    PTE_ADDRESS(*pte))); // unshare the previously shared page
+            vmmap(pd, addr, pg, PTE_USER_DATA | PTE_RW);
+        } else {
+            PANIC();
+        }
+        break;
+    case ST_TEXT:
+        if (sec->length == 0) {
+            // printk("text section with length 0!\n");
+            exit(-1);
+        }
+        usize len = sec->length;
+        u64 va = sec->begin;
+        sec->fp->off = sec->offset;
+        while (len) {
+            usize cur_len = MIN(len, (u64)PAGE_SIZE - VA_OFFSET(va));
+            auto pte = get_pte(pd, va, true);
+            if (!(*pte & PTE_VALID)) {
+                pg = kalloc_page();
+                vmmap(pd, va, pg, PTE_USER_DATA | PTE_RO);
+            }
+            if (file_read(sec->fp,
+                          (char *)(P2K(PTE_ADDRESS(*pte)) + VA_OFFSET(va)),
+                          cur_len) != (isize)cur_len)
+                PANIC();
+            len -= cur_len;
+            va += cur_len;
+        }
+        sec->length = 0;
+        file_close(sec->fp);
+        sec->fp = NULL;
+        // printk("finish text pgfault\n");
+        break;
+    case ST_USER_STACK:
+        if ((ISS_TYPE_MASK & iss) == ISS_PERMI_FAULT) {
+            pg = kalloc_page();
+            auto pte = get_pte(pd, addr, false);
+            ASSERT(pte);
+            memcpy(pg, (void *)P2K(PTE_ADDRESS(*pte)), PAGE_SIZE);
+            kfree_page((void *)P2K(
+                    PTE_ADDRESS(*pte))); // unshare the previously shared page
+            vmmap(pd, addr, pg, PTE_USER_DATA | PTE_RW);
+        } else {
+            // copy on write
+            printk("user stack COW\n");
+            pg = kalloc_page();
+            vmmap(pd, addr, p, PTE_USER_DATA | PTE_RW);
+        }
+        break;
+        /**
+     * @todo other flags
+    */
+
+    default:
+        printk("Wrong flags!\n");
+    }
+    // printk("-----------\n");
+    release_spinlock(&pd->lock);
     return 0;
     /* (Final) TODO END */
 }

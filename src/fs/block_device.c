@@ -3,6 +3,8 @@
 #include <common/string.h>
 #include <kernel/printk.h>
 
+extern u32 LBA;
+
 /**
     @brief a simple implementation of reading a block from SD card.
 
@@ -12,7 +14,7 @@
 static void sd_read(usize block_no, u8 *buffer)
 {
     Buf b;
-    b.block_no = (u32)block_no;
+    b.block_no = (u32)block_no + LBA;
     b.flags = 0;
     virtio_blk_rw(&b);
     memcpy(buffer, b.data, BLOCK_SIZE);
@@ -76,15 +78,15 @@ void print_superblock()
 void init_block_device()
 {
     // read super block from SD card
-    Buf b;
-    b.flags = 0;
-    b.block_no = (u32)0x0;
-    virtio_blk_rw(&b);
-    u8 *data = b.data;
-    int LBA = *(int *)(data + 0x1CE + 0x8);
-    // int num = *(int *)(data + 0x1CE + 0xC);
-    // printk("LBA:%d, num:%d\n", LBA, num);
-    sd_read((usize)(LBA + 1), sblock_data);
+    // Buf b;
+    // b.flags = 0;
+    // b.block_no = (u32)0x0;
+    // virtio_blk_rw(&b);
+    // u8 *data = b.data;
+    // LBA = *(int *)(data + 0x1CE + 0x8);
+    // // int num = *(int *)(data + 0x1CE + 0xC);
+    // // printk("LBA:%d, num:%d\n", LBA, num);
+    sd_read(1, sblock_data);
     // print_superblock();
     block_device.read = sd_read;
     block_device.write = sd_write;

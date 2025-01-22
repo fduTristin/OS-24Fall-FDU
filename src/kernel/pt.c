@@ -53,8 +53,10 @@ PTEntriesPtr get_pte(struct pgdir *pgdir, u64 va, bool alloc)
 
 void init_pgdir(struct pgdir *pgdir)
 {
-    pgdir->pt = (PTEntriesPtr)kalloc_page();
-    memset(pgdir->pt, NULL, PAGE_SIZE);
+    // lab3:
+    pgdir->pt = NULL;
+
+    // final:
     init_spinlock(&pgdir->lock);
     init_sections(&pgdir->section_head);
 }
@@ -91,6 +93,8 @@ void free_pgdir(struct pgdir *pgdir)
     }
     kfree_page((void *)pgdir->pt);
     pgdir->pt = NULL;
+    // Final
+    free_sections(pgdir);
 }
 
 void attach_pgdir(struct pgdir *pgdir)
@@ -110,7 +114,11 @@ void attach_pgdir(struct pgdir *pgdir)
 void vmmap(struct pgdir *pd, u64 va, void *ka, u64 flags)
 {
     /* (Final) TODO BEGIN */
-
+    u64 pa = K2P(ka);
+    PTEntriesPtr pte = get_pte(pd, va, TRUE);
+    ASSERT(pte);
+    *pte = PAGE_BASE(pa) | flags;
+    arch_tlbi_vmalle1is();
     /* (Final) TODO END */
 }
 
@@ -122,6 +130,20 @@ void vmmap(struct pgdir *pd, u64 va, void *ka, u64 flags)
 int copyout(struct pgdir *pd, void *va, void *p, usize len)
 {
     /* (Final) TODO BEGIN */
-    return 0;
+    usize size = 0;
+    while (size < len) {
+        usize offset = VA_OFFSET(va);
+        usize this_size = MIN(len, PAGE_SIZE - offset);
+        PTEntriesPtr pte = get_pte(pd, (u64)va, TRUE);
+        if (*pte == NULL) {
+            void *new_page = kalloc_page();
+            *pte = K2P(new_page) | PTE_USER_DATA;
+        }
+        memcpy((void *)(P2K(PTE_ADDRESS(*pte)) + offset), p, this_size);
+        size += this_size;
+        p += this_size;
+        va += this_size;
+    }
+    return size == len ? 0 : -1;
     /* (Final) TODO END */
 }

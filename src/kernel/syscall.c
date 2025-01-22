@@ -43,20 +43,45 @@ void syscall_entry(UserContext *context)
  * Check if the virtual address [start,start+size) is READABLE by the current
  * user process.
  */
-bool user_readable(const void *start, usize size) {
+bool user_readable(const void *start, usize size)
+{
     /* (Final) TODO BEGIN */
-    return TRUE;
+    bool ret = FALSE;
+    ListNode head = thisproc()->pgdir.section_head;
+    _for_in_list(node, &head)
+    {
+        if (node == &head)
+            continue;
+        auto st = container_of(node, struct section, stnode);
+        if (st->begin <= (u64)start && ((u64)start + size) <= st->end) {
+            ret = true;
+            break;
+        }
+    }
+    return ret;
     /* (Final) TODO END */
 }
-
 
 /**
  * Check if the virtual address [start,start+size) is READABLE & WRITEABLE by
  * the current user process.
  */
-bool user_writeable(const void *start, usize size) {
+bool user_writeable(const void *start, usize size)
+{
     /* (Final) TODO Begin */
-    return TRUE;
+    bool ret = TRUE;
+    ListNode head = thisproc()->pgdir.section_head;
+    _for_in_list(node, &head)
+    {
+        if (node == &head)
+            continue;
+        auto st = container_of(node, struct section, stnode);
+        if (st->begin <= (u64)start && ((u64)start + size) <= st->end && st->flags != ST_TEXT) {
+            ret = true;
+            break;
+        }
+    }
+    return ret;
     /* (Final) TODO End */
 }
 
@@ -65,7 +90,8 @@ bool user_writeable(const void *start, usize size) {
  * current user process return 0 if the length exceeds maxlen or the string is
  * not readable by the current user process.
  */
-usize user_strlen(const char *str, usize maxlen) {
+usize user_strlen(const char *str, usize maxlen)
+{
     for (usize i = 0; i < maxlen; i++) {
         if (user_readable(&str[i], 1)) {
             if (str[i] == 0)

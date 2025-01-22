@@ -3,6 +3,7 @@
 #include <kernel/mem.h>
 #include <kernel/printk.h>
 #include <kernel/sched.h>
+#include <kernel/console.h>
 
 /**
     @brief the private reference to the super block.
@@ -69,9 +70,10 @@ void init_inodes(const SuperBlock *_sblock, const BlockCache *_cache)
     sblock = _sblock;
     cache = _cache;
 
-    if (ROOT_INODE_NO < sblock->num_inodes)
+    if (ROOT_INODE_NO < sblock->num_inodes) {
         inodes.root = inodes.get(ROOT_INODE_NO);
-    else
+        // printk("type:%d\n",inodes.root->entry.type);
+    } else
         printk("(warn) init_inodes: no root inode.\n");
 }
 
@@ -319,6 +321,9 @@ static usize inode_map(OpContext *ctx, Inode *inode, usize offset,
 // see `inode.h`.
 static usize inode_read(Inode *inode, u8 *dest, usize offset, usize count)
 {
+    if (inode->entry.type == INODE_DEVICE) {
+        return console_read(inode, (char *)dest, count);
+    }
     InodeEntry *entry = &inode->entry;
     if (count + offset > entry->num_bytes)
         count = entry->num_bytes - offset;
@@ -350,6 +355,10 @@ static usize inode_read(Inode *inode, u8 *dest, usize offset, usize count)
 static usize inode_write(OpContext *ctx, Inode *inode, u8 *src, usize offset,
                          usize count)
 {
+    if(inode->entry.type == INODE_DEVICE)
+    {
+        return console_write(inode, (char *)src, count);
+    }
     InodeEntry *entry = &inode->entry;
     usize end = offset + count;
     ASSERT(offset <= entry->num_bytes);
@@ -417,7 +426,7 @@ static usize inode_insert(OpContext *ctx, Inode *inode, const char *name,
     usize offset = 0;
     usize index = 0;
     usize ret = __UINT64_MAX__;
-    if(inode_lookup(inode,name,NULL)){
+    if (inode_lookup(inode, name, NULL)) {
         return -1;
     }
     while (offset < entry->num_bytes) {
@@ -514,13 +523,13 @@ static const char *skipelem(const char *path, char *name)
 
 //     If `nameiparent`, return the inode for the parent and copy the final
 //     path element into `name`.
-    
+
 //     @param path a relative or absolute path. If `path` is relative, it is
 //     relative to the current working directory of the process.
 
 //     @param[out] name the final path element if `nameiparent` is true.
 
-//     @return Inode* the inode for `path` (or its parent if `nameiparent` is true), 
+//     @return Inode* the inode for `path` (or its parent if `nameiparent` is true),
 //     or NULL if such inode does not exist.
 
 //     @example
@@ -553,7 +562,8 @@ static Inode *namex(const char *path, bool nameiparent, char *name,
         usize inode_no = inodes.lookup(ip, name, 0);
         if (inode_no == 0) {
             inodes.unlockput(ctx, ip);
-            printk("FROM %s, %d, NOT FOUND!\n", __FILE__, __LINE__);
+            printk("FROM %s, %d, name %s not found!\n", __FILE__, __LINE__,
+                   name);
             return NULL;
         }
         next = inodes.get(inode_no);

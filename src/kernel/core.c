@@ -4,11 +4,17 @@
 #include <kernel/sched.h>
 #include <test/test.h>
 #include <common/buf.h>
+#include <common/string.h>
 #include <driver/virtio.h>
+#include <kernel/paging.h>
+#include <kernel/mem.h>
+
+#define INIT_ELR 0x400000
 
 volatile bool panic_flag;
-
+u32 LBA;
 void trap_return();
+extern char icode[], eicode[];
 
 NO_RETURN void idle_entry()
 {
@@ -27,37 +33,52 @@ NO_RETURN void idle_entry()
     arch_stop_cpu();
 }
 
+static Proc *initproc;
+extern struct page pages[];
 void kernel_entry()
 {
+    /* LAB 4 TODO 3 BEGIN */
+    Buf b;
+    b.flags = 0;
+    b.block_no = (u32)0x0;
+    virtio_blk_rw(&b);
+    u8 *data = b.data;
+    LBA = *(int *)(data + 0x1CE + 0x8);
+    /* LAB 4 TODO 3 END */
+
     init_filesystem();
 
     printk("Hello world! (Core %lld)\n", cpuid());
-    pgfault_first_test();
-    pgfault_second_test();
-    // proc_test();
-    // vm_test();
-    // user_proc_test();
-    // io_test();
-
-    /* LAB 4 TODO 3 BEGIN */
-
-    // Buf b;
-    // b.flags = 0;
-    // b.block_no = (u32)0x0;
-    // virtio_blk_rw(&b);
-    // u8 *data = b.data;
-    // int LBA = *(int *)(data + 0x1CE + 0x8);
-    // int num = *(int *)(data + 0x1CE + 0xC);
-    // printk("LBA:%d, num:%d\n", LBA, num);
-
-    /* LAB 4 TODO 3 END */
 
     /**
      * (Final) TODO BEGIN 
      * 
      * Map init.S to user space and trap_return to run icode.
      */
-    set_return_addr(trap_return);
+    initproc = create_proc();
+
+    initproc->ucontext->gregs[0] = 0;
+    initproc->ucontext->elr = INIT_ELR;
+    initproc->ucontext->sp = 0x80000000;
+    initproc->ucontext->spsr = 0;
+
+    struct section *st = (struct section *)kalloc(sizeof(struct section));
+    st->flags = ST_TEXT;
+    st->begin = INIT_ELR;
+    st->end = st->begin + (u64)eicode - (u64)icode;
+    _insert_into_list(&initproc->pgdir.section_head, &st->stnode);
+    void *p = kalloc_page();
+    memcpy(p, (void *)icode, PAGE_SIZE);
+    vmmap(&initproc->pgdir, INIT_ELR, p, PTE_USER_DATA | PTE_RO);
+
+    start_proc(initproc, trap_return, 0);
+    printk("initproc start!\n");
+    while (1) {
+        int code;
+        auto pid = wait(&code);
+        (void)pid;
+    }
+    PANIC();
     /* (Final) TODO END */
 }
 

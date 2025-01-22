@@ -56,7 +56,7 @@ void init_proc(Proc *p)
                               sizeof(KernelContext) - sizeof(UserContext));
     p->ucontext = (UserContext *)((u64)p->kstack + PAGE_SIZE - 16 -
                                   sizeof(UserContext));
-    if (p->cwd)
+    if (inodes.root)
         p->cwd = inodes.share(inodes.root);
     init_oftable(&p->oftable);
     release_spinlock(&plock);
@@ -170,9 +170,14 @@ NO_RETURN void exit(int code)
     acquire_sched_lock();
     release_spinlock(&plock);
     free_pgdir(&this->pgdir);
-    // OpContext ctx;
-    // inodes.put(&ctx, this->cwd);
-
+    // Final
+    decrement_rc(&this->cwd->rc);
+    for (int i = 0; i < NOFILE; i++) {
+        if (this->oftable.file[i]) {
+            file_close(this->oftable.file[i]);
+            this->oftable.file[i] = 0;
+        }
+    }
     sched(ZOMBIE);
     PANIC(); // prevent the warning of 'no_return function returns'
 }
@@ -231,6 +236,67 @@ int fork()
      * 5. Set the state of the new proc to RUNNABLE.
      * 6. Activate the new proc and return its pid.
      */
-    return 0;
+    // 1. 4.
+    printk("my pid: %d\n", thisproc()->pid);
+    Proc *parent = thisproc(), *child = create_proc();
+    acquire_spinlock(&plock);
+    child->parent = parent;
+    _insert_into_list(&parent->children, &child->ptnode);
+    release_spinlock(&plock);
+
+    // 2.
+    memcpy((void *)child->ucontext, (void *)parent->ucontext,
+           sizeof(UserContext));
+    child->ucontext->gregs[0] = 0;
+
+    // sections
+    acquire_spinlock(&parent->pgdir.lock);
+    ListNode *head = &parent->pgdir.section_head;
+    _for_in_list(p, head)
+    {
+        if (p == head)
+            continue;
+        struct section *sec = container_of(p, struct section, stnode);
+        struct section *new_sec =
+                (struct section *)kalloc(sizeof(struct section));
+        init_section(new_sec);
+        new_sec->begin = sec->begin;
+        new_sec->end = sec->end;
+        new_sec->flags = sec->flags;
+        if (sec->fp) {
+            new_sec->fp = file_dup(sec->fp);
+            new_sec->offset = sec->offset;
+            new_sec->length = sec->length;
+        }
+        _insert_into_list(&child->pgdir.section_head, &new_sec->stnode);
+        for (auto va = PAGE_BASE(sec->begin); va < sec->end; va += PAGE_SIZE) {
+            auto pte = get_pte(&parent->pgdir, va, false);
+            if (pte && (*pte & PTE_VALID)) {
+                *pte |= PTE_RO; // freeze shared page
+                vmmap(&child->pgdir, va, (void *)P2K(PTE_ADDRESS(*pte)),
+                      PTE_FLAGS(*pte));
+                kshare_page(P2K(PTE_ADDRESS(*pte)));
+            }
+        }
+    }
+    release_spinlock(&parent->pgdir.lock);
+
+    memset((void *)&child->oftable, 0, sizeof(struct oftable));
+    if (child->cwd != parent->cwd) {
+        OpContext ctx;
+        bcache.begin_op(&ctx);
+        inodes.put(&ctx, child->cwd);
+        bcache.end_op(&ctx);
+        child->cwd = inodes.share(parent->cwd);
+    }
+
+    for (int i = 0; i < NOFILE; i++) {
+        if (parent->oftable.file[i]) {
+            child->oftable.file[i] = file_dup(parent->oftable.file[i]);
+        } else
+            break;
+    }
+    start_proc(child, trap_return, 0);
+    return child->pid;
     /* (Final) TODO END */
 }

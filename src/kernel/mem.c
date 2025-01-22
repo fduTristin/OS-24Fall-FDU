@@ -128,6 +128,7 @@ void kfree_page(void *p)
         return;
     u64 idx = PAGE_INDEX(p);
     if (decrement_rc(&pages[idx].ref)) {
+        // printk("release_page: %p\n", p);
         decrement_rc(&kalloc_page_cnt);
         acquire_spinlock(&lock1);
         free_pages->prev = (ListNode *)p;
@@ -190,4 +191,11 @@ void *get_zero_page()
 u64 left_page_cnt()
 {
     return ALLOCATABLE_PAGE_COUNT - kalloc_page_cnt.count;
+}
+
+void kshare_page(u64 addr)
+{
+    // printk("share page: %llx\n",addr);
+    u64 index = PAGE_INDEX(PAGE_BASE(addr));
+    increment_rc(&pages[index].ref);
 }

@@ -45,6 +45,7 @@ void pgfault_first_test() {
         sbrk(-i * PAGE_SIZE);
     }
     for (i64 i = 1; i < limit; i++) {
+        // printk("i = %lld\n",i);
         u64 addr = sbrk(i * PAGE_SIZE);
         *(i64 *)addr = i;
         ASSERT(*(i64 *)addr == i);

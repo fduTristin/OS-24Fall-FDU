@@ -5,6 +5,9 @@
 #include <driver/interrupt.h>
 #include <kernel/console.h>
 #include <kernel/printk.h>
+#include <kernel/proc.h>
+
+extern Proc *thisproc();
 
 static void uartintr()
 {
@@ -13,6 +16,7 @@ static void uartintr()
      * Without this, the shell may fail to properly handle user inputs.
      */
     char c = uart_get_char();
+
     if (c != 0xFF) {
         console_intr(c);
     }

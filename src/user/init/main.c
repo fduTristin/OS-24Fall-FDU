@@ -23,6 +23,7 @@ int main()
     while (1) {
         printf("init: starting sh\n");
         pid = fork();
+        // printf("in init: pid: %d\n",pid);
         if (pid < 0) {
             printf("init: fork failed\n");
             exit(1);

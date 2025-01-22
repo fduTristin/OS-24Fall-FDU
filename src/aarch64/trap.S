@@ -22,18 +22,24 @@ trap_entry:
     pushp(x1, x2)
     mrs x1, sp_el0
     pushp(x1, x0)
-    mrs x1, spsr_el1
-    mrs x0, elr_el1
-    pushp(x1, x0)
+    mrs x1, elr_el1
+    mrs x0, spsr_el1
+    pushp(x0, x1)
+    str q0, [sp, #-0x10]!
+    mrs x1, tpidr_el0
+    pushp(x0, x1)
     mov x0, sp
     bl trap_global_handler
 
 .global trap_return
 trap_return:
 // TODO: restore UserContext
-    popp(x1, x0)
-    msr elr_el1, x0
-    msr spsr_el1, x1
+    popp(x0, x1)
+    msr tpidr_el0, x1
+    ldr q0, [sp], #0x10 
+    popp(x0, x1)
+    msr spsr_el1, x0
+    msr elr_el1, x1
     popp(x1, x0)
     msr sp_el0, x1
     popp(x1, x2)

@@ -11,6 +11,7 @@
 #define ST_TEXT (ST_FILE | ST_RO)
 #define ST_DATA ST_FILE
 #define ST_BSS ST_FILE
+#define ST_USER_STACK (1 << 4)
 
 struct section {
     u64 flags;
@@ -25,6 +26,7 @@ struct section {
     u64 length; // Length of mapped content in file
 };
 
+void init_section(struct section *);
 int pgfault_handler(u64 iss);
 void init_sections(ListNode *section_head);
 void free_sections(struct pgdir *pd);

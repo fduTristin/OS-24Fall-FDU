@@ -155,10 +155,10 @@ static Block *cache_acquire(usize block_no)
 
     _insert_into_list(head.prev, &b->node);
     cachesize++;
-
+    release_spinlock(&lock);
     device_read(b);
     b->valid = TRUE;
-    release_spinlock(&lock);
+
     return b;
 }
 

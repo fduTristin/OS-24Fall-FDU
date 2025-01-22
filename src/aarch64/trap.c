@@ -38,7 +38,7 @@ void trap_global_handler(UserContext *context)
         pgfault_handler(iss);
     } break;
     default: {
-        printk("Unknwon exception %llu\n", esr);
+        printk("Unknown exception %llu\n", esr);
         PANIC();
     }
     }
