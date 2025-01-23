@@ -142,7 +142,6 @@ static Block *cache_acquire(usize block_no)
         release_spinlock(&lock);
         return b;
     }
-
     if (get_num_cached_blocks() >= EVICTION_THRESHOLD) {
         evict();
     }

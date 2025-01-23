@@ -149,9 +149,6 @@ int pgfault_handler(u64 iss)
      * 4. Return to user code or kill the process.
      */
 
-    // printk("-----------\npage fault!\n");
-    // printk("my pid: %d\n", p->pid);
-    // printk("addr: %llx\n", addr);
     struct section *sec = NULL;
     acquire_spinlock(&pd->lock);
     _for_in_list(p, &pd->section_head)

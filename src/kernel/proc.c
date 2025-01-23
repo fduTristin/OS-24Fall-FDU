@@ -237,7 +237,6 @@ int fork()
      * 6. Activate the new proc and return its pid.
      */
     // 1. 4.
-    printk("my pid: %d\n", thisproc()->pid);
     Proc *parent = thisproc(), *child = create_proc();
     acquire_spinlock(&plock);
     child->parent = parent;

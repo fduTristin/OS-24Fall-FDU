@@ -292,32 +292,28 @@ Inode *create(const char *path, short type, short major, short minor,
     inodes.lock(dp);
     usize inode_no;
     if ((inode_no = inodes.lookup(dp, name, 0))) {
+        printk("path /%s already exists!\n", name);
         inodes.unlockput(ctx, dp);
         ip = inodes.get(inode_no);
-        inodes.lock(ip);
-        if (type == INODE_REGULAR && ip->entry.type == INODE_REGULAR)
-            return ip;
-        printk("FROM %s, %d, TYPE ERROR!\n", __FILE__, __LINE__);
-        inodes.unlockput(ctx, ip);
-        return 0;
+        return ip;
     }
     inode_no = inodes.alloc(ctx, type);
     ip = inodes.get(inode_no);
     inodes.lock(ip);
+    ip->entry.type = type;
     ip->entry.major = major;
     ip->entry.minor = minor;
     ip->entry.num_links = 1;
-    inodes.sync(ctx, ip, TRUE);
 
     if (type == INODE_DIRECTORY) { // Create . and .. entries.
-        dp->entry.num_links++;
-        inodes.sync(ctx, dp, TRUE);
+        ip->entry.num_links++;
         // No ip->nlink++ for ".": avoid cyclic ref count.
-        if (inodes.insert(ctx, ip, ".", ip->inode_no) == (usize)(-1) ||
+        if (inodes.insert(ctx, ip, ".", inode_no) == (usize)(-1) ||
             inodes.insert(ctx, ip, "..", dp->inode_no) == (usize)(-1))
             printk("FROM %s, %d, create '.' and '..' failure!\n", __FILE__,
                    __LINE__);
     }
+    inodes.sync(ctx, ip, TRUE);
     if (inodes.insert(ctx, dp, name, ip->inode_no) == (usize)(-1)) {
         printk("FROM %s, %d, create failure!\n", __FILE__, __LINE__);
     }
@@ -458,6 +454,23 @@ define_syscall(chdir, const char *path)
 define_syscall(pipe2, int pipefd[2], int flags)
 {
     /* (Final) TODO BEGIN */
+    File *f0, *f1;
+    if (pipe_alloc(&f0, &f1) < 0)
+        return -1;
+    if ((pipefd[0] = fdalloc(f0)) < 0) {
+        pipe_close(f0->pipe, FALSE);
+        pipe_close(f0->pipe, TRUE);
+        file_close(f0);
+        file_close(f1);
+        return -1;
+    }
+    if ((pipefd[1] = fdalloc(f1)) < 0) {
+        pipe_close(f0->pipe, FALSE);
+        pipe_close(f0->pipe, TRUE);
+        sys_close(pipefd[0]);
+        file_close(f1);
+        return -1;
+    }
     return 0;
     /* (Final) TODO END */
 }

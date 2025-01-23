@@ -91,13 +91,13 @@ static void init_inode(Inode *inode)
 static usize inode_alloc(OpContext *ctx, InodeType type)
 {
     ASSERT(type != INODE_INVALID);
-
     // TODO
     usize inode_no = 1;
     while (inode_no < sblock->num_inodes) {
         usize block_no = to_block_no(inode_no);
         Block *b = cache->acquire(block_no);
         InodeEntry *IE = get_entry(b, inode_no);
+
         if (IE->type == INODE_INVALID) {
             memset(IE, 0, sizeof(InodeEntry));
             IE->type = type;
@@ -244,6 +244,7 @@ static void inode_put(OpContext *ctx, Inode *inode)
         inode_lock(inode);
         inode_clear(ctx, inode);
         inode->entry.type = INODE_INVALID;
+        printk("inode %lld free!\n", inode->inode_no);
         inode_sync(ctx, inode, TRUE);
         inode_unlock(inode);
         _detach_from_list(&inode->node);
@@ -355,10 +356,10 @@ static usize inode_read(Inode *inode, u8 *dest, usize offset, usize count)
 static usize inode_write(OpContext *ctx, Inode *inode, u8 *src, usize offset,
                          usize count)
 {
-    if(inode->entry.type == INODE_DEVICE)
-    {
+    if (inode->entry.type == INODE_DEVICE) {
         return console_write(inode, (char *)src, count);
     }
+
     InodeEntry *entry = &inode->entry;
     usize end = offset + count;
     ASSERT(offset <= entry->num_bytes);
@@ -420,7 +421,6 @@ static usize inode_insert(OpContext *ctx, Inode *inode, const char *name,
 {
     InodeEntry *entry = &inode->entry;
     ASSERT(entry->type == INODE_DIRECTORY);
-
     // TODO
     DirEntry de;
     usize offset = 0;
