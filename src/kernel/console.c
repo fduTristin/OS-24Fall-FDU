@@ -35,8 +35,6 @@ void consputc(int c)
 isize console_write(Inode *ip, char *buf, isize n)
 {
     /* (Final) TODO BEGIN */
-    if (ip) {
-    }
     acquire_spinlock(&cons.lock);
     for (int i = 0; i < n; i++) {
         uart_put_char(buf[i]);
@@ -55,8 +53,6 @@ isize console_write(Inode *ip, char *buf, isize n)
 isize console_read(Inode *ip, char *dst, isize n)
 {
     /* (Final) TODO BEGIN */
-    if (ip) {
-    }
     isize i = n;
     acquire_spinlock(&cons.lock);
     while (i) {
@@ -67,16 +63,18 @@ isize console_read(Inode *ip, char *dst, isize n)
             }
             acquire_spinlock(&cons.lock);
         }
-        cons.read_idx = (cons.read_idx + 1) % INPUT_BUF;
-        if (cons.buf[cons.read_idx] == C('D')) {
-            if (i < n) {
-                cons.read_idx = (cons.read_idx - 1) % INPUT_BUF;
+        char c = cons.buf[cons.read_idx];
+        if (c == C('D')) {
+            if (i == n) {
+                cons.read_idx = (cons.read_idx + 1) % INPUT_BUF;
             }
+            // read next time
             break;
         }
-        *(dst++) = cons.buf[cons.read_idx];
+        *(dst++) = c;
+        cons.read_idx = (cons.read_idx + 1) % INPUT_BUF;
         i--;
-        if (cons.buf[cons.read_idx] == '\n')
+        if (c == '\n')
             break;
     }
     release_spinlock(&cons.lock);
@@ -89,14 +87,14 @@ void console_intr(char c)
     /* (Final) TODO BEGIN */
     acquire_spinlock(&cons.lock);
     switch (c) {
-    case C('U'): // Kill line.
+    case C('U'): // remove current line.
         while (cons.edit_idx != cons.write_idx &&
                cons.buf[(cons.edit_idx - 1) % INPUT_BUF] != '\n') {
             cons.edit_idx = (cons.edit_idx - 1) % INPUT_BUF;
             consputc(BACKSPACE);
         }
         break;
-    case '\x7f': // Backspace
+    case '\x7f': // backspace
         if (cons.edit_idx != cons.write_idx) {
             cons.edit_idx = (cons.edit_idx - 1) % INPUT_BUF;
             consputc(BACKSPACE);
@@ -105,7 +103,7 @@ void console_intr(char c)
     default:
         if (c != 0 && cons.edit_idx - cons.read_idx < INPUT_BUF) {
             c = (c == '\r') ? '\n' : c;
-            cons.buf[++cons.edit_idx % INPUT_BUF] = c;
+            cons.buf[cons.edit_idx++ % INPUT_BUF] = c;
             consputc(c);
             if (c == '\n' || c == C('D')) {
                 cons.write_idx = cons.edit_idx;

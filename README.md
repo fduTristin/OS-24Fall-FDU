@@ -80,7 +80,7 @@
 >
 > - `free_oftable`
 >
->   - ### 任务5
+>   - 暂时不知道有什么用，之后再说
 
 ---
 
@@ -110,7 +110,7 @@
 >
 >       > [!note]
 >       >
->       > - [ ] 需要完善`proc.c`中有关`cwd`的修改
+>       > - [x] 需要完善`proc.c`中有关`cwd`的修改
 >
 >     * 绝对路径：从根目录开始寻找
 >
@@ -349,6 +349,27 @@ typedef struct {
 
 ### 2.2. `fork()`系统调用
 
+> - [ ] **思考**：文件描述符的“复制”是什么意思？
+
+> [!note]
+>
+> 为了配合 `fork()`，你可能需要在原先的 `UserContext` 中加入所有寄存器的值。此外，你还需要保存`tpidr0` 和 `q0`，因为musl libc会使用它们。
+
+* 首先创建一个新的进程，并与当前进程建立父子关系
+
+* 将子进程的`gregs[0]`设置为0，这将是子进程的返回值
+
+* 将父进程的sections和页表拷贝给子进程
+
+  > [!note]
+  >
+  > * 子进程的`file`以及`offset`应和父进程保持一致（需要调用`file_dup`）
+  > * 所谓页表拷贝，即对于sections里面的地址范围，子进程对应的页表项需要和父进程一致。为了使子进程与父进程共享页，需要将这些页冻结（即**只读**）。之后如果需要写，则会触发**pagefault**，需要写的进程释放共享页，创建新页，拷贝原有的页，新页可读写。
+
+* 子进程的`cwd`以及`oftable`也需要和亲进程一致
+
+* 最后启动子进程（`start_proc`），入口是`trap_return`
+
 ### 2.3. `execve()`系统调用
 
 ```c
@@ -366,6 +387,7 @@ int execve(const char* path, char* const argv[], char* const envp[])
 >
 > 1. 替换 ELF 文件时，当前进程的哪些部分需要释放，哪些部分不需要？
 > 2. 是否需要把 `argv` 和 `envp` 中的实际文本信息复制到新进程的地址空间中？
+>    * 需要。我选择放到用户栈内
 
 大致流程：
 
@@ -374,7 +396,8 @@ int execve(const char* path, char* const argv[], char* const envp[])
    ```c
    if ((ip = namei(path, &ctx)) == 0) {
        bcache.end_op(&ctx);
-       printk("Path \033[47;31m%s\033[0m not found!\n", path);
+       Error；
+       printk("Path %s not found!\n", path);
        return -1;
    }
    ```
@@ -404,13 +427,13 @@ int execve(const char* path, char* const argv[], char* const envp[])
        >
        > ```c
        > bad:
-       >     if (pgdir) {
-       >         free_pgdir(pgdir);
-       >     }
-       >     if (ip) {
-       >         inodes.unlockput(&ctx, ip);
-       >         bcache.end_op(&ctx);
-       >     }
+       >  if (pgdir) {
+       >      free_pgdir(pgdir);
+       >  }
+       >  if (ip) {
+       >      inodes.unlockput(&ctx, ip);
+       >      bcache.end_op(&ctx);
+       >  }
        > ```
 
      * `magic number` & `architecture`
@@ -426,14 +449,345 @@ int execve(const char* path, char* const argv[], char* const envp[])
 
    * 获取`e_phoff,e_phnum`
 
-   
+   * 遍历program headers
 
-> - [x] `mem.c`修改：
+     * 要检查读取是否完整
+
+     * 只解析类型为`PT_LOAD`
+
+     * 这里要注意每个section的地址，因为堆将被分配在高于text，data，bss段的地址空间
+
+     * `p_flags`为`PF_R | PF_X`代表text段，采用lazy allocation
+
+       ```c
+       sec->end = sec->begin + phdr.p_filesz;
+       
+       // lazy allocation
+       sec->fp = file_alloc();
+       sec->fp->ip = inodes.share(ip);
+       sec->fp->readable = TRUE;
+       sec->fp->writable = FALSE;
+       sec->fp->ref = 1;
+       sec->fp->off = 0;
+       sec->fp->type = FD_INODE;
+       sec->length = phdr.p_filesz;
+       sec->offset = phdr.p_offset;
+       ```
+
+     * `PF_R | PF_W`代表data&bss段。data段不采用lazy allocation，直接从文件读取
+
+     * bss段直接将全零页映射到页表中，需要注意的是对应页的flags为`PTE_USER_DATA | PTE_RO`
+
+     * data&bss段的长度是memsz而非filesz
+
+   * 初始化堆，主要就是设置一个合理的`begin`，此时`end = begin`
+
+     > [!note]
+     >
+     > 所谓合理，就是不会与其他段产生地址冲突；同时为了契合我的`sbrk`实现，我选择使`begin`对齐到页。最终的实现是在
+
+   * 初始化用户栈，用户栈结构可能如下：
+
+     ```shel
+     *   +-------------+
+     *   | envp[m][sm] |
+     *   +-------------+
+     *   |    ....     |
+     *   +-------------+
+     *   | envp[m][0]  |
+     *   +-------------+
+     *   |    ....     |
+     *   +-------------+
+     *   | envp[0][s0] |
+     *   +-------------+
+     *   |    ....     |
+     *   +-------------+
+     *   | envp[0][0]  | 
+     *   +-------------+
+     *   | argv[n][sn] |
+     *   +-------------+
+     *   |    ....     |
+     *   +-------------+
+     *   | argv[n][0]  |
+     *   +-------------+
+     *   |    ....     |
+     *   +-------------+
+     *   | argv[0][s0] |
+     *   +-------------+
+     *   |    ....     |
+     *   +-------------+
+     *   | argv[0][0]  |  
+     *   +-------------+  <== str_start
+     *   | envp_ptr[m] |  = 0
+     *   +-------------+
+     *   |    ....     |
+     *   +-------------+  
+     *   | envp_ptr[0] |
+     *   +-------------+  <== envp_start
+     *   | argv_ptr[n] |  = 0
+     *   +-------------+
+     *   |    ....     |
+     *   +-------------+  
+     *   | argv_ptr[0] |
+     *   +-------------+  <== argv_start
+     *   |    argc     |
+     *   +-------------+  <== sp
+     ```
+
+     > [!note]
+     >
+     > * ptr指的是对应参数的地址，参数字符串的保存位置合法即可，但argc以及参数指针在栈中的排列顺序是严格要求的
+     > * 栈是由高地址向低地址增长，这里设置栈顶为`0x800000000000`，栈最大为`8M`
+     > * 在跑代码的时候发现栈顶以上的空间会被访问到，这里为其预留了0x20的大小
+     > * [ ] TODO1：爆栈的检查
+     > * [x] TODO2：实现用户栈的lazy allocation。逻辑还是比较简单的，和堆类似
+
+   * 将所有的段加入`pgdir.section_head`
+
+   * 需要设置`thisproc().ucontext`中的`sp`为上图中的`&argc`，`elr`为`elf.e_entry`
+
+### 2.4. lab7的内容
+
+> `mem.c`
 >
 > * `zero_page`：将之前所有可分配页的第一个固定为全零页，不能再分配
-> * `struct page pages[ALL_PAGE_COUNT]`：用于记录每一页的`ref cnt`
 >
-> * `kalloc_page()`：增加`increment_rc(&pages[PAGE_INDEX(ret)].ref);`（也就是初始化为1，添加了检查初始值是否为0）
-> * `kfree_page()`：首先`decrement_rc(&pages[idx].ref)`，如果`ref == 0`，才真正释放这一页
-> * `left_page_cnt()`：很简单，就是返回`ALLOCATABLE_PAGE_COUNT - kalloc_page_cnt.count`
-> * `get_zero_page()`：就是返回`zero_page`
+> * `struct page pages[ALL_PAGE_COUNT]`：用于记录每一页的`ref cnt`
+> * [x] `kalloc_page()`：增加`increment_rc(&pages[PAGE_INDEX(ret)].ref);`（也就是初始化为1，添加了检查初始值是否为0）
+> * [x] `kfree_page()`：首先`decrement_rc(&pages[idx].ref)`，如果`ref == 0`，才真正释放这一页
+> * [x] `left_page_cnt()`：很简单，就是返回`ALLOCATABLE_PAGE_COUNT - kalloc_page_cnt.count`
+> * [x] `get_zero_page()`：就是返回`zero_page`
+
+> `paging.c`
+>
+> - [x] `init_sections`：不需要单独初始化`heap`，简单地初始化一下`Listnode`即可
+>
+> - [ ] `free_sections`：遍历`section`，释放它们占用的页表
+>
+>   > - [ ] TODO:
+>   >
+>   >   `free_sections`需要在`mmap`部分修改
+>
+> - [x] `sbrk`：获取当前进程的页表，找到`heap`段
+>
+>   - 如果是增加，由于**lazy allocation**，暂时不需要分配页表
+>   - 如果是减少，需要释放空出的页表
+>
+> - [ ] `pagefault_handler`：首先在当前进程页表找到对应地址所在的`section`，根据`flags`:
+>
+>   * `ST_HEAP`：为对应的地址分配页，调用`vmmap`将分配的页的地址填入页表
+>   * `ST_DATA`：data和bss段触发缺页的机制是相同的：
+>     * data段并没有lazy allocation，但是存在写共享页的情况，所以需要释放原先的页并拷贝给新创建的页
+>     * bss段是写全零页，和data类似
+>
+>   * `ST_TEXT`：需要根据`sec`的`length`，`offset`，调用`file_read`读取text段
+>
+>   * `ST_USER_STACK`：和heap类似
+>
+> - [x] `copy_sections`：就是简单的遍历`from_head`，将他的每个节点都拷贝给`to_head`
+
+> `pt.c`
+>
+> - [x] `init_pgdir`：增加初始化`lock`和`section_head`
+>
+> - [x] `vmmap`：在页表`pd`中将虚拟地址`va`映射到内核地址`ka`对应的物理地址，同时加上`flags`
+>
+>   > [!note]
+>   >
+>   > 修改页表后需要调用`arch_tlbi_vmalle1is()`以清空TLB 。
+>
+> - [x] `copyout`：以页为单位循环拷贝，可能需要分配物理页。
+
+### 2.5. 其他
+
+> `syscall.c`
+>
+> - [x] `user_readable`：只要在当前进程的section范围中存在对应地址，即为可读
+>
+> - [x] `user_writeable`：在`user_readable`的基础上，需要看对应section的flags，只要不是`ST_TEXT`即为可读。
+>
+>   > [!note]
+>   >
+>   > 我思考了一个问题，这个“可写”有两种解释：
+>   >
+>   > 1. section不是text
+>   > 2. 页表对应项的flag可写（由于存在冻结页，所以非text的页也会存在无写权限的情况）
+>   >
+>   > 观察给定代码对于这个函数的调用，我认为应当是第一种情况，对于第二种情况，我们认为冻结页是可写的，之后写入触发缺页再补就好了。
+
+## 3. Shell
+
+### 1. 两个用户态程序实现
+
+> - [ ] cat(1)：`src/user/cat/main.c`。要求支持`cat + 单一文件名`的命令形式，即输出单一文件，其他功能可以自行补充。
+>
+> - [ ] mkdir(1)：`src/user/mkdir/main.c`。
+
+### 2. 执行第一个用户态程序 `src/user/init.S`
+
+在 `src/kernel/core.c` 的 `kernel_entry()` 中手动创建并启动第一个用户态进程。(即将 `init.S` 的代码映射到进程的 section 中)。
+
+* 创建一个新进程
+
+* 映射`init.S`到其代码段
+
+  * 利用`extern char icode[], eicode[]`获取代码段的内核地址
+  * 和`execve`的操作是类似的
+
+* 启动该新进程，入口为`trap_return`
+
+  * 需要设定返回地址为`init.S`的起始地址，这个地址自定义，合理即可，也就是代码段的`begin`
+
+* 切换到新进程
+
+  ```c
+  while (1) {
+      int code;
+      auto pid = wait(&code);
+      (void)pid;
+  }
+  ```
+
+  * 当内核调度回`kernel_entry`，立刻切回到其他进程。
+
+## 4. Console
+
+### 4.1. `console_intr`
+
+根据输入的字符分类：
+
+* `C('U')`：删除这一行。由于`write_idx`必定为第一个字符的前一个索引，因此只需将`edit_idx`前移至`write_idx`并调用`consputc(BACKSPACE)`
+
+  > [!note]
+  >
+  > `consputc(int c)`参照了xv6的设计
+  >
+  > ```c
+  > #define BACKSPACE 0x100
+  > void consputc(int c)
+  > {
+  >  if (c == BACKSPACE) {
+  >      uart_put_char('\b');
+  >      uart_put_char(' ');
+  >      uart_put_char('\b');
+  >  } else
+  >      uart_put_char(c);
+  > }
+  > ```
+
+* `'\x7f'`：
+
+  ```c
+  if (cons.edit_idx != cons.write_idx) {
+      cons.edit_idx = (cons.edit_idx - 1) % INPUT_BUF;
+      consputc(BACKSPACE);
+  }
+  ```
+
+* `'\r'`要换为`'\n'`，对于`'\n'`或`C('D')`需要
+
+  ```c
+  cons.write_idx = cons.edit_idx;
+  post_sem(&cons.sem); // 恢复到console_read
+  ```
+
+* 其他的就只要`edit_idx`后移1，并`consputc`即可
+
+### 4.2. `console_read` & `console_write`
+
+* `console_write`
+  * 调用`uart_put_char`依次将缓冲区对应位置的内容输出
+* `console_read`
+  * 只能读已写的内容，因此如果`read_idx == write_idx`，应当进入睡眠，直到被`console_intr`唤醒
+  * 如果读到`C('D')`并且不是读到的首字符，那么`break`，`read_idx`不应被后移，而是等到下一次`console_read`再读入`C('D')`
+  * 如果读到`'\n'`，`break`
+
+## 5. Pipe
+
+### 5.1. `pipe.c`
+
+* `init_pipe`
+  * 初始化锁和信号量，`nread = nwrite = 0`，`readopen = writeopen = TRUE`
+
+* `init_read_pipe`
+
+  ```C
+  void init_read_pipe(File *readp, Pipe *pipe)
+  {
+      readp->pipe = pipe;
+      readp->type = FD_PIPE;
+      readp->off = 0;
+      readp->readable = TRUE;
+      readp->writable = FALSE;
+  }
+  ```
+
+* `init_write_pipe`
+
+  ```c
+  void init_write_pipe(File *writep, Pipe *pipe)
+  {
+      writep->pipe = pipe;
+      writep->type = FD_PIPE;
+      writep->off = 0;
+      writep->readable = FALSE;
+      writep->writable = TRUE;
+  }
+  ```
+
+* `pipe_alloc(File **f0, File **f1)`
+
+  * 为`f0,f1`分配文件描述符
+
+  * 创建`pipe`，初始化
+
+    ```C
+    init_pipe(p);
+    init_read_pipe(*f0, p);
+    init_write_pipe(*f1, p);
+    ```
+
+* `pipe_close`
+
+  * `if(writable)`：结束写，`writeopen`设为`FALSE`，并尝试唤醒睡眠中的读者
+  * 否则，结束读，操作是对称的
+
+  * 如果读写都结束了，应当释放管道
+
+* `pipe_write`和`pipe_read`
+  * 感觉和console部分的读写逻辑很像，不作赘述。需要注意缓冲区是不是已经满了。一句话概括就是“有多少拿多少，拿完了等人放，放满了等人拿”
+
+### 5.2. `sysfile.c/pipe2`
+
+```C
+define_syscall(pipe2, int pipefd[2], int flags)
+{
+    /* (Final) TODO BEGIN */
+    File *f0, *f1;
+    if (pipe_alloc(&f0, &f1) < 0)
+        return -1;
+    if ((pipefd[0] = fdalloc(f0)) < 0) {
+        pipe_close(f0->pipe, FALSE);
+        pipe_close(f0->pipe, TRUE);
+        file_close(f0);
+        file_close(f1);
+        return -1;
+    }
+    if ((pipefd[1] = fdalloc(f1)) < 0) {
+        pipe_close(f0->pipe, FALSE);
+        pipe_close(f0->pipe, TRUE);
+        sys_close(pipefd[0]);
+        file_close(f1);
+        return -1;
+    }
+    return 0;
+    /* (Final) TODO END */
+}
+```
+
+### 5.3. 管道测试
+
+![1](1.png)
+
+## 6. File Mapping
+

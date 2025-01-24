@@ -35,10 +35,9 @@ int execve(const char *path, char *const argv[], char *const envp[])
      * You should check the ELF magic number and get the `e_phoff` and `e_phnum` which is the starting byte of program header.
      *
      */
-    // printk("pid (%d) begin execve\n", curproc->pid);
+
     OpContext ctx;
     bcache.begin_op(&ctx);
-
     if ((ip = namei(path, &ctx)) == 0) {
         bcache.end_op(&ctx);
         Error;
@@ -58,8 +57,6 @@ int execve(const char *path, char *const argv[], char *const envp[])
         // printk("Elf header maybe corrupted\n");
         goto bad;
     };
-
-    // printk("finish read elf header\n");
 
     // check magic number & architecture
     u8 *e_ident = elf.e_ident;
@@ -115,7 +112,6 @@ int execve(const char *path, char *const argv[], char *const envp[])
         Elf64_Word p_flags = phdr.p_flags;
         if (p_flags == (PF_R | PF_X)) {
             // text
-            // printk("init text section\n");
             sec->flags = ST_TEXT;
             sec->end = sec->begin + phdr.p_filesz;
 
@@ -193,8 +189,6 @@ int execve(const char *path, char *const argv[], char *const envp[])
 
     inodes.unlockput(&ctx, ip);
     bcache.end_op(&ctx);
-
-    // printk("init heap\n");
 
     // init the heap section
     struct section *heap = (struct section *)kalloc(sizeof(struct section));

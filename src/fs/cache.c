@@ -2,8 +2,10 @@
 #include <common/string.h>
 #include <fs/cache.h>
 #include <kernel/mem.h>
-#include <kernel/printk.h>
+// #include <kernel/printk.h>
 #include <kernel/proc.h>
+
+extern Proc *thisproc();
 
 /**
     @brief the private reference to the super block.
@@ -66,6 +68,7 @@ struct {
     Semaphore end;
     u64 num_ops;
     u64 blocks_allocated_but_unused;
+    bool committing;
 } log;
 
 Block *find_cache(usize);
@@ -105,6 +108,7 @@ static void init_block(Block *block)
     init_list_node(&block->node);
     block->acquired = FALSE;
     block->pinned = FALSE;
+    block->ref = 0;
 
     init_sleeplock(&block->lock);
     block->valid = FALSE;
@@ -122,24 +126,31 @@ static usize get_num_cached_blocks()
 static Block *cache_acquire(usize block_no)
 {
     // TODO
+    // printk("(cache_acquire) process %d want lock\n", thisproc()->pid);
     acquire_spinlock(&lock);
+    // printk("(cache_acquire) process %d get lock\n", thisproc()->pid);
     Block *b = find_cache(block_no);
     if (b) {
         while (b->acquired) {
             release_spinlock(&lock);
             unalertable_wait_sem(&b->lock);
+            // printk("(cache_acquire) process %d want lock\n", thisproc()->pid);
             acquire_spinlock(&lock);
+            // printk("(cache_acquire) process %d get lock\n", thisproc()->pid);
             if (get_sem(&b->lock)) {
                 b->acquired = TRUE;
+                b->ref++;
                 break;
             }
         }
         if (!b->acquired) {
             get_sem(&b->lock);
             b->acquired = TRUE;
+            b->ref++;
         }
         recently_used(b);
         release_spinlock(&lock);
+        // printk("(cache_acquire) process %d release lock\n", thisproc()->pid);
         return b;
     }
     if (get_num_cached_blocks() >= EVICTION_THRESHOLD) {
@@ -152,12 +163,15 @@ static Block *cache_acquire(usize block_no)
     b->acquired = TRUE;
     b->block_no = block_no;
 
+    release_spinlock(&lock);
+    device_read(b);
+    acquire_spinlock(&lock);
+    b->valid = TRUE;
+    b->ref++;
     _insert_into_list(head.prev, &b->node);
     cachesize++;
     release_spinlock(&lock);
-    device_read(b);
-    b->valid = TRUE;
-
+    // printk("(cache_acquire) process %d release lock\n", thisproc()->pid);
     return b;
 }
 
@@ -166,10 +180,14 @@ static void cache_release(Block *block)
 {
     // TODO
     ASSERT(block->acquired);
+    // printk("(cache_release) process %d want lock\n", thisproc()->pid);
     acquire_spinlock(&lock);
+    // printk("(cache_release) process %d get lock\n", thisproc()->pid);
     block->acquired = FALSE;
+    block->ref--;
     _post_sem(&block->lock);
     release_spinlock(&lock);
+    // printk("(cache_release) process %d release lock\n", thisproc()->pid);
 }
 
 // see `cache.h`.
@@ -186,26 +204,35 @@ void init_bcache(const SuperBlock *_sblock, const BlockDevice *_device)
     init_sem(&log.end, 0);
     init_sem(&log.begin, 0);
     log.blocks_allocated_but_unused = 0;
+    log.committing = FALSE;
+    log.num_ops = 0;
 
     // restore the log
+    read_header();
     create_checkpoint();
+    write_header();
 }
 
 // see `cache.h`.
 static void cache_begin_op(OpContext *ctx)
 {
     // TODO
+    // printk("(cache_begin_op) process %d want log lock\n", thisproc()->pid);
     acquire_spinlock(&log.lock);
+    // printk("(cache_begin_op) process %d get log lock\n", thisproc()->pid);
     usize LOG_MAX = MIN(LOG_MAX_SIZE, sblock->num_blocks - 1);
     while (log.blocks_allocated_but_unused + OP_MAX_NUM_BLOCKS +
-                   header.num_blocks >
-           LOG_MAX) {
+                           header.num_blocks >
+                   LOG_MAX ||
+           log.committing) {
         _lock_sem(&(log.begin));
         release_spinlock(&log.lock);
         if (!_wait_sem(&(log.begin), FALSE)) {
             PANIC();
         };
+        // printk("(cache_begin_op) process %d want log lock\n", thisproc()->pid);
         acquire_spinlock(&log.lock);
+        // printk("(cache_begin_op) process %d get log lock\n", thisproc()->pid);
     }
     log.blocks_allocated_but_unused +=
             OP_MAX_NUM_BLOCKS; // Suppose this op uses maximum number of blocks in log
@@ -227,7 +254,9 @@ static void cache_sync(OpContext *ctx, Block *block)
     }
 
     // if block in log, return
+    // printk("(cache_sync) process %d want log lock\n", thisproc()->pid);
     acquire_spinlock(&log.lock);
+    // printk("(cache_sync) process %d get log lock\n", thisproc()->pid);
     for (usize i = 0; i < header.num_blocks; i++) {
         if (header.block_no[i] == block->block_no) {
             release_spinlock(&log.lock);
@@ -251,14 +280,19 @@ static void cache_sync(OpContext *ctx, Block *block)
 static void cache_end_op(OpContext *ctx)
 {
     // TODO
+    // printk("(cache_end_op) process %d want log lock\n", thisproc()->pid);
     acquire_spinlock(&log.lock);
+    // printk("(cache_end_op) process %d get log lock\n", thisproc()->pid);
     log.num_ops--;
     log.blocks_allocated_but_unused -= ctx->rm;
+    if (log.num_ops == 0) {
+        log.committing = TRUE;
+    }
     // If there are other commits to the log, we wait for them
 
-    if (log.num_ops > 0) {
+    if (!log.committing) {
         _lock_sem(&(log.end));
-        post_sem(&log.begin);
+        // post_sem(&log.begin);
         release_spinlock(&log.lock);
         if (!_wait_sem(&(log.end), FALSE)) {
             PANIC();
@@ -269,10 +303,16 @@ static void cache_end_op(OpContext *ctx)
     // After all the commiters call end_op, we write the cache back to the log,
     // sync the header in memory with the header in disk and finally write the checkpoint
     // to the disk.
-    if (log.num_ops == 0) {
+    else {
         wblog();
+        release_spinlock(&log.lock);
         write_header();
+        acquire_spinlock(&log.lock);
         create_checkpoint();
+        release_spinlock(&log.lock);
+        write_header();
+        acquire_spinlock(&log.lock);
+        log.committing = FALSE;
         post_all_sem(&log.end);
         post_all_sem(&log.begin);
     }
@@ -365,7 +405,7 @@ bool evict()
         if (p == &head) {
             continue;
         }
-        if (!b->pinned & !b->acquired) {
+        if (!b->pinned && !b->acquired && b->ref == 0) {
             ListNode *temp = p->prev;
             _detach_from_list(p);
             kfree(b);
@@ -394,7 +434,6 @@ void wblog()
 
 void create_checkpoint()
 {
-    read_header();
     Block temp;
     init_block(&temp);
 
@@ -406,5 +445,4 @@ void create_checkpoint()
     }
 
     header.num_blocks = 0;
-    write_header();
 }

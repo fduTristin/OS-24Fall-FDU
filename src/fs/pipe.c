@@ -62,8 +62,6 @@ int pipe_alloc(File **f0, File **f1)
     }
 
     init_pipe(p);
-
-    // init files of the pipe
     init_read_pipe(*f0, p);
     init_write_pipe(*f1, p);
     return 0;
@@ -112,8 +110,6 @@ int pipe_write(Pipe *pi, u64 addr, int n)
             }
             acquire_spinlock(&pi->lock);
         } else {
-            printk("(pid: %d) nwrite: %u\n", thisproc()->pid, pi->nwrite);
-            printk("(pid: %d) nread: %u\n", thisproc()->pid, pi->nread);
             pi->data[pi->nwrite % PIPE_SIZE] = ((char *)addr)[len];
             pi->nwrite++;
             len++;
@@ -133,22 +129,22 @@ int pipe_read(Pipe *pi, u64 addr, int n)
     ASSERT(pi->readopen);
     while (pi->nwrite == pi->nread && pi->writeopen) {
         release_spinlock(&pi->lock);
-        if (_wait_sem(&pi->rlock, true) == false) {
+        if (_wait_sem(&pi->rlock, TRUE) == FALSE) {
             return -1;
         }
         acquire_spinlock(&pi->lock);
     }
 
-    int ret = 0;
-    while (ret < n) {
+    int len = 0;
+    while (len < n) {
         if (pi->nwrite == pi->nread)
             break;
-        printk("(pid: %d) nwrite: %u\n", thisproc()->pid, pi->nwrite);
-        printk("(pid: %d) nread: %u\n", thisproc()->pid, pi->nread);
-        ((char *)addr)[ret++] = pi->data[pi->nread++ % PIPE_SIZE];
+        ((char *)addr)[len] = pi->data[pi->nread % PIPE_SIZE];
+        len++;
+        pi->nread++;
     }
     post_all_sem(&pi->wlock);
     release_spinlock(&pi->lock);
-    return ret;
+    return len;
     /* (Final) TODO END */
 }
