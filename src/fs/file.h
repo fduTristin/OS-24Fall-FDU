@@ -42,7 +42,7 @@ struct ftable {
 
 struct oftable {
     // TODO: table of opened file descriptors in a process
-    File* file[NOFILE];
+    File *file[NOFILE];
 };
 
 // initialize the global file table.
@@ -107,4 +107,5 @@ isize file_read(struct file *f, char *addr, isize n);
     @param n the number of bytes to write.
     @return isize the number of bytes actually written. -1 on error.
 */
-isize file_write(struct file *f, char *addr, isize n);
+isize file_write(File *f, char *addr, isize n);
+usize get_file_ref(File *f);

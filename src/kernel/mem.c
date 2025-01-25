@@ -199,3 +199,11 @@ void kshare_page(u64 addr)
     u64 index = PAGE_INDEX(PAGE_BASE(addr));
     increment_rc(&pages[index].ref);
 }
+
+u64 get_page_ref(u64 addr){
+    auto index = PAGE_INDEX(PAGE_BASE(addr));
+    acquire_spinlock(&lock1);
+    auto ret = pages[index].ref.count;
+    release_spinlock(&lock1);
+    return ret;
+}

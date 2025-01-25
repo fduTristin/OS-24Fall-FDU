@@ -123,8 +123,9 @@ isize file_read(struct file *f, char *addr, isize n)
 }
 
 /* Write to file f. */
-isize file_write(struct file *f, char *addr, isize n)
+isize file_write(File *f, char *addr, isize n)
 {
+    // printk("(in file_write) size = %lld\n", n);
     /* (Final) TODO BEGIN */
     isize ret = 0;
 
@@ -141,7 +142,7 @@ isize file_write(struct file *f, char *addr, isize n)
         while (write_pointer != write_size) {
             usize size = MIN(
                     write_size - write_pointer,
-                    (usize)((OP_MAX_NUM_BLOCKS - 2) *
+                    (usize)((OP_MAX_NUM_BLOCKS - 4) *
                             BLOCK_SIZE)); // I assume it safe to use a bit less than maximum numbers of OP_BLOCKS
             OpContext ctx;
             bcache.begin_op(&ctx);
@@ -163,4 +164,12 @@ isize file_write(struct file *f, char *addr, isize n)
     }
     /* (Final) TODO END */
     return -1;
+}
+
+usize get_file_ref(File *f)
+{
+    acquire_spinlock(&ftable.lock);
+    auto ret = f->ref;
+    release_spinlock(&ftable.lock);
+    return ret;
 }

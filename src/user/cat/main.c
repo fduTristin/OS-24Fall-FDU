@@ -13,7 +13,10 @@ void cat(int fd)
 {
     int len;
     while ((len = read(fd, buf, BUFSIZE)) > 0) {
-        write(STDOUT_FILENO, buf, len);
+        if (write(1, buf, len) != len) {
+            printf(1, "cat: write error\n");
+            exit(1);
+        }
     }
     if (len < 0) {
         printf("cat: failed to read\n");
@@ -31,11 +34,10 @@ int main(int argc, char *argv[])
     }
     for (int i = 1; i < argc; ++i) {
         if ((fd = open(argv[i], 0)) < 0) {
-            printf("cat: unable to open %s\n", argv[i]);
+            printf("cat: can not open %s\n", argv[i]);
             exit(0);
         }
         cat(fd);
-        write(STDOUT_FILENO, "\n\n", 2);
         close(fd);
     }
     exit(0);

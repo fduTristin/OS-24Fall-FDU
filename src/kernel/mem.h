@@ -4,8 +4,9 @@
 #include <common/list.h>
 #include <common/rc.h>
 
-#define ALLOCATABLE_PAGE_COUNT \
-    ((P2K(PHYSTOP) - PAGE_BASE((u64) & end)) / PAGE_SIZE - 2) // exclude zero_page
+#define ALLOCATABLE_PAGE_COUNT                             \
+    ((P2K(PHYSTOP) - PAGE_BASE((u64) & end)) / PAGE_SIZE - \
+     2) // exclude zero_page
 #define ALL_PAGE_COUNT ((PHYSTOP - EXTMEM) / PAGE_SIZE)
 #define PAGE_INDEX(page) ((KSPACE((u64)page) - P2K(EXTMEM)) / PAGE_SIZE)
 
@@ -24,3 +25,4 @@ void kfree(void *);
 
 WARN_RESULT void *get_zero_page();
 void kshare_page(u64);
+u64 get_page_ref(u64 addr);

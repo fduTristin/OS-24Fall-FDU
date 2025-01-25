@@ -13,8 +13,8 @@
 #include <fs/file.h>
 #include <fs/inode.h>
 
-#define USER_STACK_TOP 0x800000000000
-#define USER_STACK_SIZE 0x800000 // 8M
+#define USER_STACK_TOP 0x80000000
+#define USER_STACK_SIZE 0x8000 // 8M
 #define RESERVE_SIZE 0x40
 #define Error printk("\033[47;31m(Error)\033[0m")
 
@@ -317,7 +317,6 @@ int execve(const char *path, char *const argv[], char *const envp[])
         argv_start += 8;
     }
     copyout(pgdir, (void *)argv_start, &zero, 8); // envp[m] = 0
-    // printk("finish init stack\n");
 
     curproc->ucontext->sp = sp;
 

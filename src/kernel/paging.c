@@ -11,6 +11,7 @@
 #include <kernel/proc.h>
 #include <kernel/pt.h>
 #include <kernel/sched.h>
+#include <sys/mman.h>
 
 #define ISS_TYPE_MASK 0x3c
 #define ISS_TRANS_FAULT 0X4
@@ -45,9 +46,22 @@ void free_pages_of_section(struct pgdir *pd, struct section *sec)
     for (u64 i = begin; i < end; i += PAGE_SIZE) {
         PTEntriesPtr pte = get_pte(pd, i, false);
         if (pte && (*pte & PTE_VALID)) {
-            /**
-             * @todo mmap
-             */
+            if ((sec->flags == ST_MMAP_PRIVATE ||
+                 sec->flags == ST_MMAP_SHARED) &&
+                !(*pte & PTE_RO) && get_page_ref(P2K(PTE_ADDRESS(*pte))) == 1) {
+                // printk("write back\n");
+                if (sec->fp->type == FD_INODE) {
+                    u64 this_begin = MAX(i, sec->begin);
+                    u64 this_end = MIN(i + PAGE_SIZE, sec->end);
+                    sec->fp->off = sec->offset + this_begin - sec->begin;
+                    file_write(sec->fp, (char *)P2K(PTE_ADDRESS(*pte)),
+                               this_end - this_begin);
+                } else if (sec->fp->type == FD_PIPE) {
+                    // TODO
+                    PANIC();
+                } else
+                    PANIC();
+            }
             kfree_page((void *)P2K(PTE_ADDRESS(*pte)));
             *pte = NULL;
         }
@@ -148,7 +162,7 @@ int pgfault_handler(u64 iss)
      * 3. Handle the page fault accordingly.
      * 4. Return to user code or kill the process.
      */
-
+    // printk("(page fault) addr: %llx\n", addr);
     struct section *sec = NULL;
     acquire_spinlock(&pd->lock);
     _for_in_list(p, &pd->section_head)

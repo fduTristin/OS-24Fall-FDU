@@ -44,6 +44,7 @@ void err(char *why)
 //
 void _v1(char *p)
 {
+    printf("(in v1)\n");
     int i;
     for (i = 0; i < PGSIZE * 2; i++) {
         if (i < PGSIZE + (PGSIZE / 2)) {
@@ -117,6 +118,7 @@ void mmap_test(void)
     // offset in the file.
     //
     char *p = mmap(0, PGSIZE * 2, PROT_READ, MAP_PRIVATE, fd, 0);
+    printf("p: %p\n", p);
     if (p == MAP_FAILED)
         err("mmap (1)");
     _v1(p);
@@ -129,13 +131,17 @@ void mmap_test(void)
     // should be able to map file opened read-only with private writable
     // mapping
     p = mmap(0, PGSIZE * 2, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+
     if (p == MAP_FAILED)
         err("mmap (2)");
     if (close(fd) == -1)
         err("close");
     _v1(p);
-    for (i = 0; i < PGSIZE * 2; i++)
+    for (i = 0; i < PGSIZE * 2; i++) {
+        // printf("i = %d\n",i);
         p[i] = 'Z';
+    }
+    printf("begin munmap\n");
     if (munmap(p, PGSIZE * 2) == -1)
         err("munmap (2)");
 
@@ -152,7 +158,7 @@ void mmap_test(void)
         err("mmap call should have failed");
     if (close(fd) == -1)
         err("close");
-
+        
     printf("test mmap read-only: OK\n");
 
     printf("test mmap read/write\n");
@@ -162,6 +168,7 @@ void mmap_test(void)
     if ((fd = open(f, O_RDWR)) == -1)
         err("open");
     p = mmap(0, PGSIZE * 3, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    printf("p: %p\n",p);
     if (p == MAP_FAILED)
         err("mmap (3)");
     if (close(fd) == -1)

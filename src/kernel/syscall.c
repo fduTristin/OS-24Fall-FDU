@@ -27,8 +27,8 @@ void syscall_entry(UserContext *context)
     // id is stored in x8. args are stored in x0-x5. return value is stored in x0.
     // be sure to check the range of id. if id >= NR_SYSCALL, panic.
     u64 id = context->gregs[8];
-    u64 x[5];
-    for (int i = 0; i != 5; i++) {
+    u64 x[6];
+    for (int i = 0; i != 6; i++) {
         x[i] = context->gregs[i];
     }
     if (id >= NR_SYSCALL) {

@@ -26,6 +26,9 @@
 #include <kernel/proc.h>
 #include <kernel/sched.h>
 
+#define MAP_SHARED 0x01
+#define MAP_PRIVATE 0x02
+
 struct iovec {
     void *iov_base; /* Starting address. */
     usize iov_len; /* Number of bytes to transfer. */
@@ -111,6 +114,7 @@ define_syscall(read, int fd, char *buffer, int size)
 
 define_syscall(write, int fd, char *buffer, int size)
 {
+    printk("begin sys_write\n");
     struct file *f = fd2file(fd);
     if (!f || size <= 0 || !user_readable(buffer, size))
         return -1;
@@ -238,7 +242,8 @@ define_syscall(unlinkat, int fd, const char *path, int flag)
     }
 
     memset(&de, 0, sizeof(de));
-    if (inodes.write(&ctx, dp, (u8 *)&de, off, sizeof(de)) != sizeof(de))
+    if (inodes.write(&ctx, dp, (u8 *)&de, off * sizeof(de), sizeof(de)) !=
+        sizeof(de))
         PANIC();
     if (ip->entry.type == INODE_DIRECTORY) {
         dp->entry.num_links--;
@@ -341,6 +346,7 @@ define_syscall(openat, int dirfd, const char *path, int omode)
     if (omode & O_CREAT) {
         // FIXME: Support acl mode.
         ip = create(path, INODE_REGULAR, 0, 0, &ctx);
+        printk("create %s, ip: %p\n", path, ip);
         if (ip == 0) {
             bcache.end_op(&ctx);
             return -1;
@@ -368,6 +374,7 @@ define_syscall(openat, int dirfd, const char *path, int omode)
     f->off = 0;
     f->readable = !(omode & O_WRONLY);
     f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+    // printk("fd: %d", fd);
     return fd;
 }
 
