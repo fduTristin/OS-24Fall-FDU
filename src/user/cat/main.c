@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
             exit(0);
         }
         cat(fd);
+        write(STDOUT_FILENO, "\n", 2);
         close(fd);
     }
     exit(0);
