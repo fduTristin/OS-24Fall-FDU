@@ -100,12 +100,16 @@ int pipe_write(Pipe *pi, u64 addr, int n)
 
     int len = 0;
     while (len < n) {
-        ASSERT(pi->readopen);
+        if (!pi->readopen) {
+            release_spinlock(&pi->lock);
+            return -1;
+        }
         if (pi->nwrite >= pi->nread + PIPE_SIZE) {
             //buffer is full
-            post_all_sem(&pi->rlock);
+            _lock_sem(&pi->wlock);
             release_spinlock(&pi->lock);
-            if (!wait_sem(&pi->wlock)) {
+            post_all_sem(&pi->rlock);
+            if (!_wait_sem(&pi->wlock, FALSE)) {
                 return len;
             }
             acquire_spinlock(&pi->lock);
@@ -128,8 +132,9 @@ int pipe_read(Pipe *pi, u64 addr, int n)
     acquire_spinlock(&pi->lock);
     ASSERT(pi->readopen);
     while (pi->nwrite == pi->nread && pi->writeopen) {
+        _lock_sem(&pi->rlock);
         release_spinlock(&pi->lock);
-        if (_wait_sem(&pi->rlock, TRUE) == FALSE) {
+        if (_wait_sem(&pi->rlock, FALSE) == FALSE) {
             return -1;
         }
         acquire_spinlock(&pi->lock);
