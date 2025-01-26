@@ -152,7 +152,7 @@ isize file_write(File *f, char *addr, isize n)
         while (write_pointer != write_size) {
             usize size = MIN(
                     write_size - write_pointer,
-                    (usize)((OP_MAX_NUM_BLOCKS - 4) *
+                    (usize)((OP_MAX_NUM_BLOCKS / 2) *
                             BLOCK_SIZE)); // I assume it safe to use a bit less than maximum numbers of OP_BLOCKS
             OpContext ctx;
             bcache.begin_op(&ctx);

@@ -14,10 +14,15 @@
 >>>>>>> final-dev
 [ 32%] Linking C static library libkernelx.a
 [ 47%] Built target kernelx
+[ 48%] Building C object src/driver/CMakeFiles/driver.dir/virtio_blk.c.o
+[ 50%] Linking C static library libdriver.a
 [ 56%] Built target driver
 [ 59%] Built target user
+[ 60%] Building C object src/test/CMakeFiles/test.dir/io_test.c.o
+[ 62%] Linking C static library libtest.a
 [ 69%] Built target test
-[ 70%] Linking C executable kernel8.elf
+[ 70%] Building C object src/CMakeFiles/kernel8.elf.dir/main.c.o
+[ 71%] Linking C executable kernel8.elf
 [ 73%] Built target kernel8.elf
 [ 74%] Generating kernel8.asm
 [ 75%] Generating kernel8.hdr
