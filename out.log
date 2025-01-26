@@ -1,8 +1,10 @@
 [  2%] Built target rm
+[  3%] Building C object src/fs/CMakeFiles/fs.dir/inode.c.o
+[  4%] Linking C static library libfs.a
 [ 10%] Built target fs
 [ 19%] Built target aarch64
 [ 30%] Built target common
-[ 31%] Building C object src/kernel/CMakeFiles/kernelx.dir/exec.c.o
+[ 31%] Building C object src/kernel/CMakeFiles/kernelx.dir/mem.c.o
 [ 32%] Linking C static library libkernelx.a
 [ 47%] Built target kernelx
 [ 56%] Built target driver
@@ -46,7 +48,7 @@ Units: sectors of 1 * 512 = 512 bytes
 Sector size (logical/physical): 512 bytes / 512 bytes
 I/O size (minimum/optimal): 512 bytes / 512 bytes
 Disklabel type: dos
-Disk identifier: 0x1ceb5aef
+Disk identifier: 0xb43d877c
 
 Old situation:
 
@@ -54,14 +56,14 @@ Device                                      Boot  Start    End Sectors Size Id T
 /root/data/OS-24Fall-FDU/build/boot/sd.img1        2048 133119  131072  64M  c W95 FAT32 (LBA)
 /root/data/OS-24Fall-FDU/build/boot/sd.img2      133120 262143  129024  63M 83 Linux
 
->>> Created a new DOS (MBR) disklabel with disk identifier 0xa1ce7d6f.
+>>> Created a new DOS (MBR) disklabel with disk identifier 0x4334e10c.
 /root/data/OS-24Fall-FDU/build/boot/sd.img1: Created a new partition 1 of type 'W95 FAT32 (LBA)' and of size 64 MiB.
 /root/data/OS-24Fall-FDU/build/boot/sd.img2: Created a new partition 2 of type 'Linux' and of size 63 MiB.
 /root/data/OS-24Fall-FDU/build/boot/sd.img3: Done.
 
 New situation:
 Disklabel type: dos
-Disk identifier: 0xa1ce7d6f
+Disk identifier: 0x4334e10c
 
 Device                                      Boot  Start    End Sectors Size Id Type
 /root/data/OS-24Fall-FDU/build/boot/sd.img1        2048 133119  131072  64M  c W95 FAT32 (LBA)
@@ -93,147 +95,290 @@ Syncing disks.
 > dd if=/root/data/OS-24Fall-FDU/build/boot/boot.img of=/root/data/OS-24Fall-FDU/build/boot/sd.img seek=2048 conv=notrunc
 > dd if=/root/data/OS-24Fall-FDU/build/boot/fs.img of=/root/data/OS-24Fall-FDU/build/boot/sd.img seek=133120 conv=notrunc
 [100%] Built target image
+pages: 260466
+pages: 260465
+pages: 260464
+pages: 260463
+pages: 260462
 CPU 0: hello
 CPU 1: hello
-CPU 3: hello
 CPU 2: hello
+CPU 3: hello
+pages: 260461
+pages: 260462
+pages: 260461
+pages: 260462
+pages: 260461
+pages: 260462
+pages: 260461
+pages: 260462
+pages: 260461
+pages: 260460
+pages: 260459
+pages: 260460
 Hello world! (Core 1)
-(page fault) addr: 4001a8
+pages: 260459
+pages: 260458
+pages: 260457
+pages: 260456
+pages: 260455
+pages: 260454
+pages: 260453
+pages: 260452
+pages: 260451
+pages: 260450
+pages: 260449
+pages: 260448
+pages: 260447
+pages: 260446
+pages: 260445
+pages: 260444
+pages: 260443
+pages: 260442
+pages: 260441
+pages: 260440
+pages: 260439
+pages: 260438
+pages: 260437
+pages: 260436
+pages: 260435
+pages: 260434
+pages: 260433
+pages: 260432
+pages: 260431
+pages: 260430
+pages: 260429
+pages: 260428
+pages: 260429
+pages: 260430
+pages: 260431
+pages: 260432
+pages: 260433
+pages: 260432
+pages: 260431
+pages: 260430
+pages: 260429
+pages: 260428
 mknodat: path 'console', major:minor 0:1
 init: starting sh
-(page fault) addr: 7fffee10
-(page fault) addr: 4046d0
-(page fault) addr: 7fffee10
-(page fault) addr: 4001a8
-(page fault) addr: 40f380
-(page fault) addr: 40eac0
+pages: 260427
+pages: 260426
+pages: 260425
+pages: 260424
+pages: 260423
+pages: 260422
+pages: 260421
+pages: 260420
+pages: 260419
+pages: 260418
+pages: 260418
+pages: 260419
+pages: 260418
+pages: 260418
+pages: 260417
+pages: 260416
+pages: 260415
+pages: 260414
+pages: 260413
+pages: 260412
+pages: 260411
+pages: 260410
+pages: 260409
+pages: 260408
+pages: 260407
+pages: 260406
+pages: 260405
+pages: 260404
+pages: 260403
+pages: 260402
+pages: 260401
+pages: 260400
+pages: 260399
+pages: 260398
+pages: 260397
+pages: 260396
+pages: 260395
+pages: 260394
+pages: 260394
+pages: 260394
+pages: 260394
+pages: 260394
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260395
+pages: 260396
+pages: 260396
+pages: 260397
+pages: 260398
+pages: 260399
+pages: 260400
+pages: 260401
+pages: 260402
+pages: 260401
+pages: 260400
+pages: 260399
+pages: 260398
+pages: 260397
+pages: 260396
+pages: 260395
+pages: 260394
+pages: 260393
+pages: 260392
+pages: 260391
+pages: 260390
+pages: 260389
 sh: argv[0] = 'sh'
 sh: testenv = 'FROM_INIT'
-$ echo hello | echo
-(page fault) addr: 7fffedc0
-(page fault) addr: 40f440
-(page fault) addr: 7fffedc0
-(page fault) addr: 40eabc
-(page fault) addr: 40c308
-(page fault) addr: 7fffed60
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 4001a8
-(page fault) addr: 4001a8
-hello
-(page fault) addr: 40ea90
-(page fault) addr: 40c300
-$ (page fault) addr: 40c048
-(page fault) addr: 40ea20
-echo hello | echo
-(page fault) addr: 7fffedc0
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 40c308
-(page fault) addr: 7fffedc0
-(page fault) addr: 7fffed60
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 4001a8
-(page fault) addr: 4001a8
-hello
-(page fault) addr: 40ea90
-(page fault) addr: 40c300
-$ (page fault) addr: 40c048
-(page fault) addr: 40ea20
-echo hello | echo
-(page fault) addr: 7fffedc0
-(page fault) addr: 7fffedc0
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 40c308
-(page fault) addr: 7fffed60
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 4001a8
-(page fault) addr: 4001a8
-hello
-(page fault) addr: 40ea90
-(page fault) addr: 40c300
-$ (page fault) addr: 40c048
-(page fault) addr: 40ea20
-echo hello | echo
-(page fault) addr: 7fffedc0
-(page fault) addr: 40f440
-(page fault) addr: 7fffedc0
-(page fault) addr: 40eabc
-(page fault) addr: 40c308
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 7fffed60
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 4001a8
-(page fault) addr: 4001a8
-hello
-(page fault) addr: 40ea90
-(page fault) addr: 40c300
-$ (page fault) addr: 40c048
-(page fault) addr: 40ea20
-echo hello | echo
-(page fault) addr: 7fffedc0
-(page fault) addr: 40f440
-(page fault) addr: 7fffedc0
-(page fault) addr: 40eabc
-(page fault) addr: 40c308
-(page fault) addr: 7fffed60
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 4001a8
-(page fault) addr: 4001a8
-hello
-(page fault) addr: 40ea90
-(page fault) addr: 40c300
-$ (page fault) addr: 40c048
-(page fault) addr: 40ea20
-e echo hello | echo
-(page fault) addr: 7fffedc0
-(page fault) addr: 7fffedc0
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 40c308
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 7fffed60
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 40f440
-(page fault) addr: 40eabc
-(page fault) addr: 7fffed60
-(page fault) addr: 4001a8
-(page fault) addr: 4001a8
-hello
-(page fault) addr: 40ea90
-(page fault) addr: 40c300
-$ (page fault) addr: 40c048
-(page fault) addr: 40ea20
+$ ls
+pages: 260388
+pages: 260387
+pages: 260386
+pages: 260385
+pages: 260384
+pages: 260383
+pages: 260382
+pages: 260381
+pages: 260381
+pages: 260380
+pages: 260380
+pages: 260379
+pages: 260379
+pages: 260378
+pages: 260378
+pages: 260377
+pages: 260378
+pages: 260377
+pages: 260376
+pages: 260375
+pages: 260374
+pages: 260373
+pages: 260372
+pages: 260371
+pages: 260370
+pages: 260369
+pages: 260368
+pages: 260367
+pages: 260366
+pages: 260365
+pages: 260364
+pages: 260363
+pages: 260362
+pages: 260361
+pages: 260360
+pages: 260359
+pages: 260358
+pages: 260357
+pages: 260356
+pages: 260355
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260354
+pages: 260355
+pages: 260356
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260357
+pages: 260358
+pages: 260358
+pages: 260359
+pages: 260360
+pages: 260361
+pages: 260362
+pages: 260363
+pages: 260364
+pages: 260363
+pages: 260362
+pages: 260361
+pages: 260360
+pages: 260359
+pages: 260358
+pages: 260357
+pages: 260356
+pages: 260355
+.              4000 1 512
+..             4000 1 512
+init           8000 2 13704
+cat            8000 3 34144
+sh             8000 4 46936
+echo           8000 5 34384
+ls             8000 6 38480
+mkfs           8000 7 42592
+mkdir          8000 8 34144
+usertests      8000 9 38240
+mmaptest       8000 10 42352
+rm             8000 11 34144
+console        0 12 0
+pages: 260356
+pages: 260357
+pages: 260358
+pages: 260359
+pages: 260360
+pages: 260361
+pages: 260362
+pages: 260363
+pages: 260364
+pages: 260365
+pages: 260366
+pages: 260367
+pages: 260368
+pages: 260369
+pages: 260370
+pages: 260371
+pages: 260372
+pages: 260373
+pages: 260374
+pages: 260375
+pages: 260376
+pages: 260377
+pages: 260378
+pages: 260379
+pages: 260380
+pages: 260381
+pages: 260382
+pages: 260383
+pages: 260384
+pages: 260385
+pages: 260386
+pages: 260387
+pages: 260388
+pages: 260389
+$ pages: 260388
+pages: 260389
+pages: 260388
+pages: 260389
 QEMU: Terminated
 [100%] Built target qemu
