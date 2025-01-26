@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     int i;
 
     if (argc < 2) {
-        printf("Usage: rm files...\n");
+        printf("Usage: rm <filename1> <filename2> ...\n");
         exit(0);
     }
 

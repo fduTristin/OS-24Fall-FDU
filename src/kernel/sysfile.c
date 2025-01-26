@@ -114,7 +114,7 @@ define_syscall(read, int fd, char *buffer, int size)
 
 define_syscall(write, int fd, char *buffer, int size)
 {
-    printk("begin sys_write\n");
+    // printk("begin sys_write\n");
     struct file *f = fd2file(fd);
     if (!f || size <= 0 || !user_readable(buffer, size))
         return -1;
@@ -346,7 +346,7 @@ define_syscall(openat, int dirfd, const char *path, int omode)
     if (omode & O_CREAT) {
         // FIXME: Support acl mode.
         ip = create(path, INODE_REGULAR, 0, 0, &ctx);
-        printk("create %s, ip: %p\n", path, ip);
+        // printk("create %s, ip: %p\n", path, ip);
         if (ip == 0) {
             bcache.end_op(&ctx);
             return -1;

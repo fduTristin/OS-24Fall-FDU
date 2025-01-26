@@ -106,7 +106,6 @@ void runcmd(struct cmd *cmd)
             fprintf(stderr, "open %s failed\n", rcmd->file);
             exit(1);
         }
-        printf("open finish\n");
         runcmd(rcmd->cmd);
         break;
 

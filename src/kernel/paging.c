@@ -162,7 +162,6 @@ int pgfault_handler(u64 iss)
      * 3. Handle the page fault accordingly.
      * 4. Return to user code or kill the process.
      */
-    // printk("(page fault) addr: %llx\n", addr);
     struct section *sec = NULL;
     acquire_spinlock(&pd->lock);
     _for_in_list(p, &pd->section_head)
@@ -181,19 +180,12 @@ int pgfault_handler(u64 iss)
      * @todo mmap
     */
     void *pg = NULL;
-    // printk("flags: %lld\n", sec->flags);
-    // while (1)
-    // {
-    // }
     switch (sec->flags) {
     case ST_HEAP:
-        // printk("heap\n");
         pg = kalloc_page();
         vmmap(pd, addr, p, PTE_USER_DATA | PTE_RW);
-        // printk("vmmap\n");
         break;
     case ST_DATA:
-        // printk("bss\n");
         if ((ISS_TYPE_MASK & iss) == ISS_PERMI_FAULT) {
             pg = kalloc_page();
             auto pte = get_pte(pd, addr, false);
@@ -209,14 +201,13 @@ int pgfault_handler(u64 iss)
         break;
     case ST_TEXT:
         if (sec->length == 0) {
-            // printk("text section with length 0!\n");
             exit(-1);
         }
-        usize len = sec->length;
+        u64 len = sec->length;
         u64 va = sec->begin;
         sec->fp->off = sec->offset;
         while (len) {
-            usize cur_len = MIN(len, (u64)PAGE_SIZE - VA_OFFSET(va));
+            u64 cur_len = MIN(len, (u64)PAGE_SIZE - VA_OFFSET(va));
             auto pte = get_pte(pd, va, true);
             if (!(*pte & PTE_VALID)) {
                 pg = kalloc_page();
@@ -232,7 +223,6 @@ int pgfault_handler(u64 iss)
         sec->length = 0;
         file_close(sec->fp);
         sec->fp = NULL;
-        // printk("finish text pgfault\n");
         break;
     case ST_USER_STACK:
         if ((ISS_TYPE_MASK & iss) == ISS_PERMI_FAULT) {
@@ -245,7 +235,7 @@ int pgfault_handler(u64 iss)
             vmmap(pd, addr, pg, PTE_USER_DATA | PTE_RW);
         } else {
             // copy on write
-            printk("user stack COW\n");
+            // printk("user stack COW\n");
             pg = kalloc_page();
             vmmap(pd, addr, p, PTE_USER_DATA | PTE_RW);
         }

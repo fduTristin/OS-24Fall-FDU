@@ -172,12 +172,7 @@ NO_RETURN void exit(int code)
     free_pgdir(&this->pgdir);
     // Final
     decrement_rc(&this->cwd->rc);
-    for (int i = 0; i < NOFILE; i++) {
-        if (this->oftable.file[i]) {
-            file_close(this->oftable.file[i]);
-            this->oftable.file[i] = 0;
-        }
-    }
+    free_oftable(&this->oftable);
     sched(ZOMBIE);
     PANIC(); // prevent the warning of 'no_return function returns'
 }
@@ -246,7 +241,6 @@ int fork()
     // 2.
     memcpy((void *)child->ucontext, (void *)parent->ucontext,
            sizeof(UserContext));
-    child->ucontext->gregs[0] = 0;
 
     // sections
     acquire_spinlock(&parent->pgdir.lock);
@@ -295,7 +289,9 @@ int fork()
         } else
             break;
     }
+
     start_proc(child, trap_return, 0);
+    child->ucontext->gregs[0] = 0;
     return child->pid;
     /* (Final) TODO END */
 }

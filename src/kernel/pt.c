@@ -69,6 +69,9 @@ void free_pgdir(struct pgdir *pgdir)
     if (pgdir->pt == NULL) {
         return;
     }
+
+    // Final
+    free_sections(pgdir);
     PTEntriesPtr pt[4];
     pt[0] = pgdir->pt;
     for (int i = 0; i != N_PTE_PER_TABLE; i++) {
@@ -93,8 +96,6 @@ void free_pgdir(struct pgdir *pgdir)
     }
     kfree_page((void *)pgdir->pt);
     pgdir->pt = NULL;
-    // Final
-    free_sections(pgdir);
 }
 
 void attach_pgdir(struct pgdir *pgdir)

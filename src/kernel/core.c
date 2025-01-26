@@ -10,6 +10,7 @@
 #include <kernel/mem.h>
 
 #define INIT_ELR 0x400000
+#define INIT_SP 0x80000000
 
 volatile bool panic_flag;
 u32 LBA;
@@ -56,23 +57,21 @@ void kernel_entry()
      * Map init.S to user space and trap_return to run icode.
      */
     initproc = create_proc();
-
-    initproc->ucontext->gregs[0] = 0;
     initproc->ucontext->elr = INIT_ELR;
-    initproc->ucontext->sp = 0x80000000;
+    initproc->ucontext->sp = INIT_SP;
     initproc->ucontext->spsr = 0;
 
-    struct section *st = (struct section *)kalloc(sizeof(struct section));
-    st->flags = ST_TEXT;
-    st->begin = INIT_ELR;
-    st->end = st->begin + (u64)eicode - (u64)icode;
-    _insert_into_list(&initproc->pgdir.section_head, &st->stnode);
+    struct section *text = (struct section *)kalloc(sizeof(struct section));
+    text->flags = ST_TEXT;
+    text->begin = INIT_ELR;
+    text->end = text->begin + (u64)eicode - (u64)icode;
+    _insert_into_list(&initproc->pgdir.section_head, &text->stnode);
     void *p = kalloc_page();
     memcpy(p, (void *)icode, PAGE_SIZE);
     vmmap(&initproc->pgdir, INIT_ELR, p, PTE_USER_DATA | PTE_RO);
 
     start_proc(initproc, trap_return, 0);
-    printk("initproc start!\n");
+    // printk("initproc start!\n");
     while (1) {
         int code;
         auto pid = wait(&code);

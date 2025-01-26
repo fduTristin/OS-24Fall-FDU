@@ -41,11 +41,9 @@ int execve(const char *path, char *const argv[], char *const envp[])
     if ((ip = namei(path, &ctx)) == 0) {
         bcache.end_op(&ctx);
         Error;
-        // printk("Path %s not found!\n", path);
-        return -1;
+        printk("%s does not exist!\n", path);
+        exit(0);
     }
-
-    // printk("Path %s found!\n", path);
 
     inodes.lock(ip);
     pgdir = NULL;
@@ -339,6 +337,6 @@ bad:
         inodes.unlockput(&ctx, ip);
         bcache.end_op(&ctx);
     }
-    return -1;
+    exit(0);
     /* (Final) TODO END */
 }

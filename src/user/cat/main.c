@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     /* (Final) TODO BEGIN */
     int fd;
     if (argc <= 1) {
-        cat(0);
+        printf("Usage: cat <filename1> <filename2> ...\n");
         exit(0);
     }
     for (int i = 1; i < argc; ++i) {

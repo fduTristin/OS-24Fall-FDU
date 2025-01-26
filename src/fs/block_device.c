@@ -87,7 +87,7 @@ void init_block_device()
     // // int num = *(int *)(data + 0x1CE + 0xC);
     // // printk("LBA:%d, num:%d\n", LBA, num);
     sd_read(1, sblock_data);
-    print_superblock();
+    // print_superblock();
     block_device.read = sd_read;
     block_device.write = sd_write;
 }

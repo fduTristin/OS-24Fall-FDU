@@ -49,6 +49,8 @@ struct oftable {
 void init_ftable();
 // initialize the opened file table for a process.
 void init_oftable(struct oftable *);
+// clear oftable and close its file
+void free_oftable(struct oftable*);
 
 /**
     @brief find an unused (i.e. ref == 0) file in the global file table and set ref to 1.

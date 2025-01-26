@@ -244,7 +244,7 @@ static void inode_put(OpContext *ctx, Inode *inode)
         inode_lock(inode);
         inode_clear(ctx, inode);
         inode->entry.type = INODE_INVALID;
-        printk("inode %lld free!\n", inode->inode_no);
+        // printk("inode %lld free!\n", inode->inode_no);
         inode_sync(ctx, inode, TRUE);
         inode_unlock(inode);
         _detach_from_list(&inode->node);
@@ -562,8 +562,8 @@ static Inode *namex(const char *path, bool nameiparent, char *name,
         usize inode_no = inodes.lookup(ip, name, 0);
         if (inode_no == 0) {
             inodes.unlockput(ctx, ip);
-            printk("FROM %s, %d, name %s not found!\n", __FILE__, __LINE__,
-                   name);
+            // printk("FROM %s, %d, name %s not found!\n", __FILE__, __LINE__,
+            //        name);
             return NULL;
         }
         next = inodes.get(inode_no);

@@ -119,6 +119,7 @@ void *kalloc_page()
     release_spinlock(&lock1);
     ASSERT(pages[PAGE_INDEX(ret)].ref.count == 0);
     increment_rc(&pages[PAGE_INDEX(ret)].ref);
+    // printk("pages: %lld\n", left_page_cnt());
     return ret;
 }
 
@@ -136,6 +137,7 @@ void kfree_page(void *p)
         free_pages = free_pages->prev;
         release_spinlock(&lock1);
     }
+    // printk("pages: %lld\n", left_page_cnt());
     return;
 }
 
@@ -200,7 +202,8 @@ void kshare_page(u64 addr)
     increment_rc(&pages[index].ref);
 }
 
-u64 get_page_ref(u64 addr){
+u64 get_page_ref(u64 addr)
+{
     auto index = PAGE_INDEX(PAGE_BASE(addr));
     acquire_spinlock(&lock1);
     auto ret = pages[index].ref.count;

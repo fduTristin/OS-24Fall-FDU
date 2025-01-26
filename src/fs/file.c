@@ -26,6 +26,16 @@ void init_oftable(struct oftable *oftable)
     memset(oftable, NULL, NOFILE);
 }
 
+void free_oftable(struct oftable *oftable)
+{
+    for (int i = 0; i < NOFILE; i++) {
+        if (oftable->file[i]) {
+            file_close(oftable->file[i]);
+            oftable->file[i] = 0;
+        }
+    }
+}
+
 /* Allocate a file structure. */
 struct file *file_alloc()
 {
