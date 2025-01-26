@@ -14,9 +14,9 @@
 #include <fs/inode.h>
 
 #define USER_STACK_TOP 0x80000000
-#define USER_STACK_SIZE 0x8000 // 8M
-#define RESERVE_SIZE 0x40
-#define Error printk("\033[47;31m(Error)\033[0m")
+#define USER_STACK_SIZE 0x10000 // 16 * PAGESIZE 
+#define RESERVE_SIZE 0x1000
+#define error printk("\033[31m(error)\033[0m ")
 
 extern int fdalloc(struct file *f);
 
@@ -40,7 +40,7 @@ int execve(const char *path, char *const argv[], char *const envp[])
     bcache.begin_op(&ctx);
     if ((ip = namei(path, &ctx)) == 0) {
         bcache.end_op(&ctx);
-        Error;
+        error;
         printk("%s does not exist!\n", path);
         exit(0);
     }
@@ -51,8 +51,8 @@ int execve(const char *path, char *const argv[], char *const envp[])
     // read elf header & check its length
     if (inodes.read(ip, (u8 *)(&elf), 0, sizeof(Elf64_Ehdr)) !=
         sizeof(Elf64_Ehdr)) {
-        Error;
-        // printk("Elf header maybe corrupted\n");
+        error;
+        printk("Elf header maybe corrupted\n");
         goto bad;
     };
 
@@ -60,8 +60,8 @@ int execve(const char *path, char *const argv[], char *const envp[])
     u8 *e_ident = elf.e_ident;
     if (strncmp((const char *)e_ident, ELFMAG, SELFMAG) != 0 ||
         e_ident[EI_CLASS] != ELFCLASS64) {
-        Error;
-        // printk("File format not supported.\n");
+        error;
+        printk("File format not supported.\n");
         goto bad;
     }
 
@@ -93,8 +93,8 @@ int execve(const char *path, char *const argv[], char *const envp[])
     for (u64 i = 0, off = e_phoff; i < e_phnum; i++, off += sizeof(phdr)) {
         // load program headers
         if (inodes.read(ip, (u8 *)&phdr, off, sizeof(phdr)) != sizeof(phdr)) {
-            Error;
-            // printk("Failed to read program header\n");
+            error;
+            printk("Failed to read program header\n");
             goto bad;
         }
         if (phdr.p_type != PT_LOAD)
@@ -146,8 +146,8 @@ int execve(const char *path, char *const argv[], char *const envp[])
                 vmmap(pgdir, PAGE_BASE(va), p, PTE_USER_DATA | PTE_RW);
                 if (inodes.read(ip, (u8 *)(p + VA_OFFSET(va)), offset,
                                 cursize) != cursize) {
-                    Error;
-                    // printk("Failed to read data section\n");
+                    error;
+                    printk("Failed to read data section\n");
                     goto bad;
                 }
                 filesz -= cursize;
@@ -177,8 +177,8 @@ int execve(const char *path, char *const argv[], char *const envp[])
                 ASSERT(va == phdr.p_vaddr + phdr.p_memsz);
             }
         } else {
-            Error;
-            // printk("Invalid program header type\n");
+            error;
+            printk("Invalid program header type\n");
             goto bad;
         }
 
@@ -250,11 +250,11 @@ int execve(const char *path, char *const argv[], char *const envp[])
     * The entry point addresses is stored in elf_header.entry
     */
 
-    // lazy allocation
-    // void *p = kalloc_page();
-    // memset(p, 0, PAGE_SIZE);
-    // vmmap(pgdir, USER_STACK_TOP - PAGE_SIZE, p, PTE_USER_DATA | PTE_RW);
-    // printk("begin initialize stack\n");
+    for (u64 i = 1; i <= USER_STACK_SIZE / PAGE_SIZE; i++) {
+        void *p = kalloc_page();
+        memset(p, 0, PAGE_SIZE);
+        vmmap(pgdir, USER_STACK_TOP - i * PAGE_SIZE, p, PTE_USER_DATA | PTE_RW);
+    }
     u64 top = USER_STACK_TOP - RESERVE_SIZE;
     struct section *st_ustack =
             (struct section *)kalloc(sizeof(struct section));

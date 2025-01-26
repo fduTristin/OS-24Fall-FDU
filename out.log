@@ -1,10 +1,17 @@
 [  2%] Built target rm
+<<<<<<< HEAD
 [  3%] Building C object src/fs/CMakeFiles/fs.dir/inode.c.o
 [  4%] Linking C static library libfs.a
 [ 10%] Built target fs
 [ 19%] Built target aarch64
 [ 30%] Built target common
 [ 31%] Building C object src/kernel/CMakeFiles/kernelx.dir/mem.c.o
+=======
+[ 10%] Built target fs
+[ 19%] Built target aarch64
+[ 30%] Built target common
+[ 31%] Building C object src/kernel/CMakeFiles/kernelx.dir/exec.c.o
+>>>>>>> final-dev
 [ 32%] Linking C static library libkernelx.a
 [ 47%] Built target kernelx
 [ 56%] Built target driver
@@ -48,7 +55,11 @@ Units: sectors of 1 * 512 = 512 bytes
 Sector size (logical/physical): 512 bytes / 512 bytes
 I/O size (minimum/optimal): 512 bytes / 512 bytes
 Disklabel type: dos
+<<<<<<< HEAD
 Disk identifier: 0x4db2dbad
+=======
+Disk identifier: 0x1ceb5aef
+>>>>>>> final-dev
 
 Old situation:
 
@@ -56,14 +67,22 @@ Device                                      Boot  Start    End Sectors Size Id T
 /root/data/OS-24Fall-FDU/build/boot/sd.img1        2048 133119  131072  64M  c W95 FAT32 (LBA)
 /root/data/OS-24Fall-FDU/build/boot/sd.img2      133120 262143  129024  63M 83 Linux
 
+<<<<<<< HEAD
 >>> Created a new DOS (MBR) disklabel with disk identifier 0x74b05a5e.
+=======
+>>> Created a new DOS (MBR) disklabel with disk identifier 0xa1ce7d6f.
+>>>>>>> final-dev
 /root/data/OS-24Fall-FDU/build/boot/sd.img1: Created a new partition 1 of type 'W95 FAT32 (LBA)' and of size 64 MiB.
 /root/data/OS-24Fall-FDU/build/boot/sd.img2: Created a new partition 2 of type 'Linux' and of size 63 MiB.
 /root/data/OS-24Fall-FDU/build/boot/sd.img3: Done.
 
 New situation:
 Disklabel type: dos
+<<<<<<< HEAD
 Disk identifier: 0x74b05a5e
+=======
+Disk identifier: 0xa1ce7d6f
+>>>>>>> final-dev
 
 Device                                      Boot  Start    End Sectors Size Id Type
 /root/data/OS-24Fall-FDU/build/boot/sd.img1        2048 133119  131072  64M  c W95 FAT32 (LBA)
@@ -96,6 +115,7 @@ Syncing disks.
 > dd if=/root/data/OS-24Fall-FDU/build/boot/fs.img of=/root/data/OS-24Fall-FDU/build/boot/sd.img seek=133120 conv=notrunc
 [100%] Built target image
 CPU 0: hello
+<<<<<<< HEAD
 CPU 3: hello
 CPU 2: hello
 CPU 1: hello
@@ -155,4 +175,148 @@ console        0 12 0pages: 260400
 
 pages: 260419
 $ QEMU: Terminated
+=======
+CPU 1: hello
+CPU 3: hello
+CPU 2: hello
+Hello world! (Core 1)
+(page fault) addr: 4001a8
+mknodat: path 'console', major:minor 0:1
+init: starting sh
+(page fault) addr: 7fffee10
+(page fault) addr: 4046d0
+(page fault) addr: 7fffee10
+(page fault) addr: 4001a8
+(page fault) addr: 40f380
+(page fault) addr: 40eac0
+sh: argv[0] = 'sh'
+sh: testenv = 'FROM_INIT'
+$ echo hello | echo
+(page fault) addr: 7fffedc0
+(page fault) addr: 40f440
+(page fault) addr: 7fffedc0
+(page fault) addr: 40eabc
+(page fault) addr: 40c308
+(page fault) addr: 7fffed60
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 4001a8
+(page fault) addr: 4001a8
+hello
+(page fault) addr: 40ea90
+(page fault) addr: 40c300
+$ (page fault) addr: 40c048
+(page fault) addr: 40ea20
+echo hello | echo
+(page fault) addr: 7fffedc0
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 40c308
+(page fault) addr: 7fffedc0
+(page fault) addr: 7fffed60
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 4001a8
+(page fault) addr: 4001a8
+hello
+(page fault) addr: 40ea90
+(page fault) addr: 40c300
+$ (page fault) addr: 40c048
+(page fault) addr: 40ea20
+echo hello | echo
+(page fault) addr: 7fffedc0
+(page fault) addr: 7fffedc0
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 40c308
+(page fault) addr: 7fffed60
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 4001a8
+(page fault) addr: 4001a8
+hello
+(page fault) addr: 40ea90
+(page fault) addr: 40c300
+$ (page fault) addr: 40c048
+(page fault) addr: 40ea20
+echo hello | echo
+(page fault) addr: 7fffedc0
+(page fault) addr: 40f440
+(page fault) addr: 7fffedc0
+(page fault) addr: 40eabc
+(page fault) addr: 40c308
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 7fffed60
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 4001a8
+(page fault) addr: 4001a8
+hello
+(page fault) addr: 40ea90
+(page fault) addr: 40c300
+$ (page fault) addr: 40c048
+(page fault) addr: 40ea20
+echo hello | echo
+(page fault) addr: 7fffedc0
+(page fault) addr: 40f440
+(page fault) addr: 7fffedc0
+(page fault) addr: 40eabc
+(page fault) addr: 40c308
+(page fault) addr: 7fffed60
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 4001a8
+(page fault) addr: 4001a8
+hello
+(page fault) addr: 40ea90
+(page fault) addr: 40c300
+$ (page fault) addr: 40c048
+(page fault) addr: 40ea20
+e echo hello | echo
+(page fault) addr: 7fffedc0
+(page fault) addr: 7fffedc0
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 40c308
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 7fffed60
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 40f440
+(page fault) addr: 40eabc
+(page fault) addr: 7fffed60
+(page fault) addr: 4001a8
+(page fault) addr: 4001a8
+hello
+(page fault) addr: 40ea90
+(page fault) addr: 40c300
+$ (page fault) addr: 40c048
+(page fault) addr: 40ea20
+QEMU: Terminated
+>>>>>>> final-dev
 [100%] Built target qemu

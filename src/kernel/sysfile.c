@@ -440,14 +440,14 @@ define_syscall(chdir, const char *path)
     bcache.begin_op(&ctx);
     if ((ip = namei(path, &ctx)) == NULL) {
         bcache.end_op(&ctx);
-        printk("FROM %s, %d, NOT FOUND!\n", __FILE__, __LINE__);
+        printk("directory %s does not exist\n", path);
         return -1;
     }
     inodes.lock(ip);
     if (ip->entry.type != INODE_DIRECTORY) {
         inodes.unlockput(&ctx, ip);
         bcache.end_op(&ctx);
-        printk("FROM %s, %d, NOT A DIR!\n", __FILE__, __LINE__);
+        printk("%s is not a directory\n", path);
         return -1;
     }
     inodes.unlock(ip);
