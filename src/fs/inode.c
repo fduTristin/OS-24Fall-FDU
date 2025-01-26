@@ -96,11 +96,11 @@ static usize inode_alloc(OpContext *ctx, InodeType type)
     while (inode_no < sblock->num_inodes) {
         usize block_no = to_block_no(inode_no);
         Block *b = cache->acquire(block_no);
-        InodeEntry *IE = get_entry(b, inode_no);
+        InodeEntry *ie = get_entry(b, inode_no);
 
-        if (IE->type == INODE_INVALID) {
-            memset(IE, 0, sizeof(InodeEntry));
-            IE->type = type;
+        if (ie->type == INODE_INVALID) {
+            memset(ie, 0, sizeof(InodeEntry));
+            ie->type = type;
             cache->sync(ctx, b);
             cache->release(b);
             return inode_no;
@@ -139,14 +139,14 @@ static void inode_sync(OpContext *ctx, Inode *inode, bool do_write)
             cache->release(b);
             PANIC();
         }
-        InodeEntry *IE = get_entry(b, inode->inode_no);
-        memcpy(IE, &inode->entry, sizeof(InodeEntry));
+        InodeEntry *ie = get_entry(b, inode->inode_no);
+        memcpy(ie, &inode->entry, sizeof(InodeEntry));
         cache->sync(ctx, b);
     }
     if (!do_write) {
         if (!inode->valid) {
-            InodeEntry *IE = get_entry(b, inode->inode_no);
-            memcpy(&inode->entry, IE, sizeof(InodeEntry));
+            InodeEntry *ie = get_entry(b, inode->inode_no);
+            memcpy(&inode->entry, ie, sizeof(InodeEntry));
             inode->valid = TRUE;
         }
     }
@@ -200,7 +200,7 @@ Inode *find(usize inode_no)
 static void inode_clear(OpContext *ctx, Inode *inode)
 {
     // TODO
-    InodeEntry *IE = &inode->entry;
+    InodeEntry *ie = &inode->entry;
     for (usize i = 0; i != INODE_NUM_DIRECT; i++) {
         usize block_no = inode->entry.addrs[i];
         if (block_no) {
@@ -208,8 +208,8 @@ static void inode_clear(OpContext *ctx, Inode *inode)
         }
     }
 
-    if (IE->indirect) {
-        Block *ib = cache->acquire(IE->indirect);
+    if (ie->indirect) {
+        Block *ib = cache->acquire(ie->indirect);
         u32 *indir_addrs = get_addrs(ib);
         for (usize i = 0; i < INODE_NUM_INDIRECT; i++) {
             u32 block_no = indir_addrs[i];
@@ -218,7 +218,7 @@ static void inode_clear(OpContext *ctx, Inode *inode)
             }
         }
         cache->release(ib);
-        cache->free(ctx, IE->indirect);
+        cache->free(ctx, ie->indirect);
     }
 
     inode->entry.indirect = NULL;
