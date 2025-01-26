@@ -107,8 +107,11 @@ define_syscall(dup, int fd)
 define_syscall(read, int fd, char *buffer, int size)
 {
     struct file *f = fd2file(fd);
-    if (!f || size <= 0 || !user_writeable(buffer, size))
+    ASSERT(size > 0);
+    if (!f || !user_writeable(buffer, size)) {
+        printk("fail to read\n");
         return -1;
+    }
     return file_read(f, buffer, size);
 }
 
@@ -116,8 +119,11 @@ define_syscall(write, int fd, char *buffer, int size)
 {
     // printk("begin sys_write\n");
     struct file *f = fd2file(fd);
-    if (!f || size <= 0 || !user_readable(buffer, size))
+    ASSERT(size > 0);
+    if (!f || !user_readable(buffer, size)) {
+        printk("fail to write\n");
         return -1;
+    }
     return file_write(f, buffer, size);
 }
 
@@ -143,7 +149,7 @@ define_syscall(close, int fd)
         printk("From %s, %d, fd out of range\n", __FILE__, __LINE__);
         return -1;
     }
-    auto ft = &thisproc()->oftable;
+    struct oftable *ft = &(thisproc()->oftable);
     if (ft->file[fd]) {
         file_close(ft->file[fd]);
         ft->file[fd] = NULL;
