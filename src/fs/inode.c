@@ -356,6 +356,7 @@ static usize inode_read(Inode *inode, u8 *dest, usize offset, usize count)
 static usize inode_write(OpContext *ctx, Inode *inode, u8 *src, usize offset,
                          usize count)
 {
+    // printk("pages: %lld\n", left_page_cnt());
     if (inode->entry.type == INODE_DEVICE) {
         return console_write(inode, (char *)src, count);
     }
@@ -388,6 +389,7 @@ static usize inode_write(OpContext *ctx, Inode *inode, u8 *src, usize offset,
         inode_sync(ctx, inode, TRUE);
     }
     ASSERT(write_pointer - offset == count);
+    // printk("pages: %lld\n", left_page_cnt());
     return write_pointer - offset;
 }
 

@@ -129,7 +129,6 @@ void kfree_page(void *p)
         return;
     u64 idx = PAGE_INDEX(p);
     if (decrement_rc(&pages[idx].ref)) {
-        // printk("release_page: %p\n", p);
         decrement_rc(&kalloc_page_cnt);
         acquire_spinlock(&lock1);
         free_pages->prev = (ListNode *)p;
