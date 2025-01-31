@@ -56,13 +56,7 @@
 >
 > - `file_write`
 >
->   - 和`read`类似，不过需要注意的是，一次`write`不一定能够在一次事务完成，因为有`OP_MAX_NUM_BLOCKS`的限制，因此我使用多个事务，每个事务的写数据量略少于`OP_MAX_NUM_BLOCKS`
->
->     > [!note]
->     >
->     > （我认为这是更不容易出问题的）
->     >
->     > - [ ] 在后面会测试和优化
+>   - 和`read`类似，不过需要注意的是，一次`write`不一定能够在一次事务完成，因为有`OP_MAX_NUM_BLOCKS`的限制，因此我使用多个事务，每个事务的写数据块数略少于`OP_MAX_NUM_BLOCKS`，因为除了数据块可能还有其他块的脏块。
 >
 >   - 此外要保证写的范围不能超出`INODE_MAX_BYTES`
 >
@@ -80,7 +74,7 @@
 >
 > - `free_oftable`
 >
->   - 暂时不知道有什么用，之后再说
+>   - 将`oftable`中非`NULL`的文件描述符指针改为`NULL`，需要调用`file_close`
 
 ---
 
@@ -111,6 +105,9 @@
 >       > [!note]
 >       >
 >       > - [x] 需要完善`proc.c`中有关`cwd`的修改
+>       >
+>       > * 初始化进程时，需要将`cwd`设置为`root_inode`
+>       > * 进程退出时也要及时unshare`cwd`
 >
 >     * 绝对路径：从根目录开始寻找
 >
@@ -272,7 +269,8 @@
 
 ---
 
-> - [ ] **任务 5**：参考讲解部分，修改 `inode.c` 中 `read` 和 `write` 函数，以支持设备文件。
+> - [x] **任务 5**：参考讲解部分，修改 `inode.c` 中 `read` 和 `write` 函数，以支持设备文件。
+>   * 对于设备文件直接调用`console_read`和`console_write`
 
 
 
@@ -349,11 +347,70 @@ typedef struct {
 
 ### 2.2. `fork()`系统调用
 
-> - [ ] **思考**：文件描述符的“复制”是什么意思？
+> - [x] **思考**：文件描述符的“复制”是什么意思？
+>
+>   在fork语境下，子进程需要复制父进程的`oftable`和`cwd`
+>
+>   这里的复制，一方面是要在子进程拷贝一份文件描述符指针，另一方面需要调用`file_dup`
 
 > [!note]
 >
 > 为了配合 `fork()`，你可能需要在原先的 `UserContext` 中加入所有寄存器的值。此外，你还需要保存`tpidr0` 和 `q0`，因为musl libc会使用它们。
+>
+> ```assembly
+> trap_entry:
+>  pushp(x29, lr)
+>  pushp(x27, x28)
+>  pushp(x25, x26)
+>  pushp(x23, x24)
+>  pushp(x21, x22)
+>  pushp(x19, x20)
+>  pushp(x17, x18)
+>  pushp(x15, x16)
+>  pushp(x13, x14)
+>  pushp(x11, x12)
+>  pushp(x9, x10)
+>  pushp(x7, x8)
+>  pushp(x5, x6)
+>  pushp(x3, x4)
+>  pushp(x1, x2)
+>  mrs x1, sp_el0
+>  pushp(x1, x0)
+>  mrs x1, elr_el1
+>  mrs x0, spsr_el1
+>  pushp(x0, x1)
+>  str q0, [sp, #-0x10]!
+>  mrs x1, tpidr_el0
+>  pushp(x0, x1)
+>  mov x0, sp
+>  bl trap_global_handler
+> 
+> trap_return:
+>  popp(x0, x1)
+>  msr tpidr_el0, x1
+>  ldr q0, [sp], #0x10 
+>  popp(x0, x1)
+>  msr spsr_el1, x0
+>  msr elr_el1, x1
+>  popp(x1, x0)
+>  msr sp_el0, x1
+>  popp(x1, x2)
+>  popp(x3, x4)
+>  popp(x5, x6)
+>  popp(x7, x8)
+>  popp(x9, x10)
+>  popp(x11, x12)
+>  popp(x13, x14)
+>  popp(x15, x16)
+>  popp(x17, x18)
+>  popp(x19, x20)
+>  popp(x21, x22)
+>  popp(x23, x24)
+>  popp(x25, x26)
+>  popp(x27, x28)
+>  popp(x29, lr)
+>  eret
+> ```
 
 * 首先创建一个新的进程，并与当前进程建立父子关系
 
@@ -383,9 +440,11 @@ int execve(const char* path, char* const argv[], char* const envp[])
 
 * `execve()` 替换当前进程为 `path` 所指的 ELF 格式文件，加载该 ELF 文件，并运行该程序。你需要读取 `Elf64_Ehdr` 和 `Elf64_Phdr` 结构，注意根据 `p_flags` 的信息判断 section 类型，把 `p_vaddr`, `p_memsz`, `p_offset` 等信息填入到实验框架中的 `struct section` 对应位置；将文件中的代码和数据加载到内存中，并**设置好用户栈、堆等空间**；最后跳转到 ELF 文件的入口地址开始执行
 
-> - [ ] **思考** 
+> - [x] **思考** 
 >
 > 1. 替换 ELF 文件时，当前进程的哪些部分需要释放，哪些部分不需要？
+>    * 页表(包括sections)需要释放
+>    * `oftable`不需要释放
 > 2. 是否需要把 `argv` 和 `envp` 中的实际文本信息复制到新进程的地址空间中？
 >    * 需要。我选择放到用户栈内
 
@@ -537,10 +596,8 @@ int execve(const char* path, char* const argv[], char* const envp[])
      > [!note]
      >
      > * ptr指的是对应参数的地址，参数字符串的保存位置合法即可，但argc以及参数指针在栈中的排列顺序是严格要求的
-     > * 栈是由高地址向低地址增长，这里设置栈顶为`0x800000000000`，栈最大为`8M`
-     > * 在跑代码的时候发现栈顶以上的空间会被访问到，这里为其预留了0x20的大小
-     > * [ ] TODO1：爆栈的检查
-     > * [x] TODO2：实现用户栈的lazy allocation。逻辑还是比较简单的，和堆类似
+     > * 栈是由高地址向低地址增长，这里设置栈顶为`0x8000000`，栈最大为16页
+     > * 在跑代码的时候发现栈顶以上的空间会被访问到，这里为其预留了一页的大小
 
    * 将所有的段加入`pgdir.section_head`
 
@@ -562,18 +619,16 @@ int execve(const char* path, char* const argv[], char* const envp[])
 >
 > - [x] `init_sections`：不需要单独初始化`heap`，简单地初始化一下`Listnode`即可
 >
-> - [ ] `free_sections`：遍历`section`，释放它们占用的页表
+> - [x] `free_sections`：遍历`section`，释放它们占用的页表
 >
->   > - [ ] TODO:
->   >
->   >   `free_sections`需要在`mmap`部分修改
+>   > - [ ] `free_sections`需要在`mmap`部分修改
 >
 > - [x] `sbrk`：获取当前进程的页表，找到`heap`段
 >
 >   - 如果是增加，由于**lazy allocation**，暂时不需要分配页表
 >   - 如果是减少，需要释放空出的页表
 >
-> - [ ] `pagefault_handler`：首先在当前进程页表找到对应地址所在的`section`，根据`flags`:
+> - [x] `pagefault_handler`：首先在当前进程页表找到对应地址所在的`section`，根据`flags`:
 >
 >   * `ST_HEAP`：为对应的地址分配页，调用`vmmap`将分配的页的地址填入页表
 >   * `ST_DATA`：data和bss段触发缺页的机制是相同的：
@@ -582,7 +637,9 @@ int execve(const char* path, char* const argv[], char* const envp[])
 >
 >   * `ST_TEXT`：需要根据`sec`的`length`，`offset`，调用`file_read`读取text段
 >
->   * `ST_USER_STACK`：和heap类似
+>   * `ST_USER_STACK`：有两种情况
+>     * 一是lazy allocation导致的，这种情况和heap类似
+>     * 二是由于共享栈被冻结，写入产生缺页异常，这种情况和data段类似
 >
 > - [x] `copy_sections`：就是简单的遍历`from_head`，将他的每个节点都拷贝给`to_head`
 
@@ -613,17 +670,18 @@ int execve(const char* path, char* const argv[], char* const envp[])
 >   > 1. section不是text
 >   > 2. 页表对应项的flag可写（由于存在冻结页，所以非text的页也会存在无写权限的情况）
 >   >
->   > 观察给定代码对于这个函数的调用，我认为应当是第一种情况，对于第二种情况，我们认为冻结页是可写的，之后写入触发缺页再补就好了。
+>   > 观察给定代码对于这个函数的调用，我认为应当是第一种解释，对于第二种情况，我们认为冻结页是可写的，之后写入触发缺页再补就好了。
 
 ## 3. Shell
 
-### 1. 两个用户态程序实现
+### 3.1. 两个用户态程序实现
 
-> - [ ] cat(1)：`src/user/cat/main.c`。要求支持`cat + 单一文件名`的命令形式，即输出单一文件，其他功能可以自行补充。
+> - [x] cat(1)：`src/user/cat/main.c`。要求支持`cat + 单一文件名`的命令形式，即输出单一文件，其他功能可以自行补充。
+> - [x] mkdir(1)：`src/user/mkdir/main.c`。
 >
-> - [ ] mkdir(1)：`src/user/mkdir/main.c`。
+> 参考了xv6的实现
 
-### 2. 执行第一个用户态程序 `src/user/init.S`
+### 3.2. 执行第一个用户态程序 `src/user/init.S`
 
 在 `src/kernel/core.c` 的 `kernel_entry()` 中手动创建并启动第一个用户态进程。(即将 `init.S` 的代码映射到进程的 section 中)。
 
@@ -649,6 +707,12 @@ int execve(const char* path, char* const argv[], char* const envp[])
   ```
 
   * 当内核调度回`kernel_entry`，立刻切回到其他进程。
+
+### 3.3. 运行实例
+
+<img src="2.png" alt="2" style="zoom:50%;" />
+
+<img src="3.png" alt="3" style="zoom:50%;" />
 
 ## 4. Console
 
@@ -707,6 +771,7 @@ int execve(const char* path, char* const argv[], char* const envp[])
 ### 5.1. `pipe.c`
 
 * `init_pipe`
+
   * 初始化锁和信号量，`nread = nwrite = 0`，`readopen = writeopen = TRUE`
 
 * `init_read_pipe`
@@ -755,6 +820,7 @@ int execve(const char* path, char* const argv[], char* const envp[])
   * 如果读写都结束了，应当释放管道
 
 * `pipe_write`和`pipe_read`
+
   * 感觉和console部分的读写逻辑很像，不作赘述。需要注意缓冲区是不是已经满了。一句话概括就是“有多少拿多少，拿完了等人放，放满了等人拿”
 
 ### 5.2. `sysfile.c/pipe2`
@@ -787,7 +853,36 @@ define_syscall(pipe2, int pipefd[2], int flags)
 
 ### 5.3. 管道测试
 
-![1](1.png)
+<img src="1.png" alt="1" style="zoom:50%;" />
+
+### 5.4. 其他
+
+> [!note]
+>
+> 写完pipe之后尝试运行`$ echo hello | echo | echo`总是会死锁，推测是`cache.c`中cache锁和virtio中的磁盘锁导致的，于是在一些`device->read`和`devide->write`的调用前释放cache锁发现就可以了。（虽然不清楚这样放锁是否安全）
 
 ## 6. File Mapping
+
+### ***太失败了***
+
+## 7. Bonus
+
+### 7.1. rm
+
+支持普通文件和文件夹的删除
+
+> [!note]
+>
+> `sysfie.c`的`unlinkat`函数有点错误，改正如下：
+>
+> ```c
+> if (inodes.write(&ctx, dp, (u8 *)&de, off * sizeof(de), sizeof(de)) != sizeof(de))
+> 	PANIC();
+> ```
+
+<img src="4.png" alt="4" style="zoom:50%;" />
+
+### 7.2. 重定向`>,<,+`
+
+目前有点bug，虽然能成功写入，但是在某个未知的地方卡住了，重新`make qemu`可以看到之前写入文件的内容
 
